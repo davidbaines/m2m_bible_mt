@@ -1,0 +1,33 @@
+[project]
+name = "samileides"
+version = "0.1.0"
+description = "Reproduction of Sami Liedes' closed-text Bible machine-translation experiment with modern transformers"
+readme = "spec.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2",
+    "pyarrow>=16",
+    "huggingface-hub>=0.30",
+    "fsspec>=2024.6",
+    "pyyaml>=6",
+    "tabulate>=0.9",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/samileides"]
+
+[tool.pytest.ini_options]
+addopts = "-q -m 'not integration'"
+testpaths = ["tests"]
+markers = [
+    "integration: touches the Hugging Face Hub over the network",
+]

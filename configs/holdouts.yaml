@@ -1,0 +1,10 @@
+# Holdout design (spec.md): whole books withheld per translation.
+# OT / NT expand to the full testament. Extended holdout languages are added
+# here ONLY after David approves experiments/extended-holdouts-proposal.md.
+holdouts:
+  engbsb: [OT]      # English: trained on NT only, whole OT generated
+  deuelbbk: [GEN]   # German: Genesis withheld
+  fin: [MAT]        # Finnish: no OT exists in corpus; one Gospel withheld
+
+valid_size: 5000
+seed: 13
