@@ -1,0 +1,51 @@
+translationId,languageCode,languageNameInEnglish,family,script,OTverses,NTverses,DCverses,totalVerses
+azb,azb,"Azerbaijani, South",Turkic,Latin,23145,7927,0,31072
+deuelbbk,deu,German,Indo-European,Latin,23212,7953,0,31165
+engbsb,eng,English,Indo-European,Latin,23145,7941,0,31086
+fin,fin,Finnish,Uralic,Latin,0,7638,0,7638
+hin2017,hin,Hindi,Indo-Aryan,Devanagari,23145,7959,0,31104
+lin,lin,Lingála,Bantu,Latin,23212,7957,0,31169
+pon2006a,pon,Pohnpeian,Austronesian,Latin,22266,7941,1901,32108
+vie1934,vie,Vietnamese,Austroasiatic,Latin,23145,7957,0,31102
+bel,bel,Belarusian,Indo-European,Cyrillic,23213,7957,0,31170
+breBRG,bre,Breton,,Latin,0,3779,0,3779
+cha,cha,Chamorro,,Latin,2461,4784,0,7245
+cmn-cu89s,cmn,Chinese,Sino-Tibetan,CJK,23081,7940,0,31021
+hrv,hrv,Croatian,Indo-European,Latin,23212,7957,4279,35448
+ces1613,ces,Czech,Indo-European,Latin,23214,7958,0,31172
+dan1931,dan,Danish,Indo-European,Latin,23211,7957,0,31168
+nld1939,nld,Dutch,Indo-European,Latin,22787,7956,4592,35335
+epo,epo,Esperanto,Constructed,Latin,23145,7957,0,31102
+ekk,ekk,"Estonian, Standard",,Latin,0,7957,0,7957
+pesOPV,pes,Persian,Indo-European,Arabic,23139,7951,0,31090
+frasbl,fra,French,Indo-European,Latin,23145,7958,6955,38058
+hatbsa,hat,Haitian,Creole,Latin,23145,7958,0,31103
+heb,heb,Hebrew,Afro-Asiatic,Hebrew,23145,7957,0,31102
+hun,hun,Magyar,,Latin,0,7957,0,7957
+ita1927,ita,Italian,Indo-European,Latin,23145,7957,0,31102
+kekNT,kek,Q'eqchi',,Latin,0,7958,0,7958
+kor,kor,Korean,Koreanic,Latin,23071,7920,0,30991
+lit,lit,Lithuanian,,Latin,2581,4554,0,7135
+mri2012,mri,Māori,,Latin,23145,7958,0,31103
+noblb,nob,Norwegian,,Latin,0,7748,0,7748
+polubg,pol,Polish,Indo-European,Latin,23145,7957,0,31102
+poronbv,por,Português,Indo-European,Latin,23147,7958,0,31105
+ronbtf,ron,Romanian,Indo-European,Latin,23145,7957,0,31102
+russyn,rus,Russian,Indo-European,Latin,23214,7955,0,31169
+som,som,Somali,Afro-Asiatic,Latin,23145,7958,0,31103
+spablm,spa,Spanish,Indo-European,Latin,23145,7958,6955,38058
+swhonen,swh,Swahili,Bantu,Latin,23145,7958,0,31103
+swef,swe,Swedish,Indo-European,Latin,23213,7940,0,31153
+tglulb,tgl,Tagalog,Austronesian,Latin,23144,7959,0,31103
+turytc,tur,Turkish,Turkic,Latin,23139,7925,0,31064
+ukr1871,ukr,Ukrainian,Indo-European,Latin,23127,7955,0,31082
+latVUC,lat,Latin,Indo-European,Latin,23483,7951,4375,35809
+hltmcsb,hlt,"Chin, Matu",Sino-Tibetan,Latin,23145,7959,6565,37669
+shr,shr,Shi,,Latin,23386,7957,4110,35453
+tpi,tpi,Melanesian Pidgin,Creole,Latin,22456,7906,4480,34842
+hui,hui,Huli,Trans-New Guinea,Latin,22137,7855,4314,34306
+yal,yal,Yalunka,Mande,Latin,23213,7955,0,31168
+wolmbs,wol,Wolof,Niger-Congo,Latin,23184,7944,0,31128
+srp1868,srp,Serbian,Indo-European,Latin,23153,7958,0,31111
+arb-vd,arb,Arabic,Afro-Asiatic,Arabic,23145,7959,0,31104
+guj2017,guj,Gujarati,Indo-Aryan,Gujarati,23145,7959,0,31104

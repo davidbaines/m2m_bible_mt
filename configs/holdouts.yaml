@@ -5,6 +5,10 @@ holdouts:
   engbsb: [OT]      # English: trained on NT only, whole OT generated
   deuelbbk: [GEN]   # German: Genesis withheld
   fin: [MAT]        # Finnish: no OT exists in corpus; one Gospel withheld
-
+  lin: [GEN]        # Lingala
+  pon2006a: [GEN]   # Pohnpeian
+  hin2017: [GEN]    # Hindi
+  azb: [GEN]        # Azerbaijani, South 
+  vie1934: [GEN]    # Vietnamese
 valid_size: 5000
 seed: 13

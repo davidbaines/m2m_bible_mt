@@ -1,0 +1,49 @@
+# Pilot experiment: one-to-many from the composite Greek source (spec.md
+# phase 1). Consumed by the training script (Phase 1, GPU side). Hyperparameters
+# sized so a full run finishes well under 12 h on one H100 (40 GB).
+name: pilot
+phase: one-to-many
+
+data:
+  selection: experiments/selection-pilot.csv
+  holdouts: configs/holdouts.yaml
+  source: greek           # composite grcbrent (OT) + grc-tisch (NT)
+  max_len: 192
+  max_ratio: 2.0
+
+tokenizer:
+  type: bpe               # phase 5 revisits: unigram, then byte-level
+  vocab_size: 32000
+
+model:                    # transformer-big, from scratch (spec.md "Model")
+  arch: marian            # HF MarianMTModel config, random init
+  encoder_layers: 6
+  decoder_layers: 6
+  d_model: 1024
+  encoder_attention_heads: 16
+  decoder_attention_heads: 16
+  encoder_ffn_dim: 4096
+  decoder_ffn_dim: 4096
+  dropout: 0.1
+  label_smoothing: 0.1
+
+training:
+  optimizer: adamw
+  lr: 5.0e-4
+  warmup_steps: 4000
+  lr_scheduler: inverse_sqrt
+  max_tokens_per_batch: 16000
+  gradient_accumulation: 2
+  max_grad_norm: 1.0
+  bf16: true
+  max_steps: 100000
+  early_stopping_patience: 5
+  eval_every_steps: 2000
+  seed: 13
+
+inference:
+  beam: 5                 # phase 2 ablation compares beam 120
+  length_penalty: 1.0
+  max_length: 192
+
+oversample_holdouts: 1    # 1 = none; phase 2 ablation compares 3

@@ -33,21 +33,29 @@ change; tick tasks `[x]` as they are completed.
 
 ## Phase 1 — pilot (one-to-many, ~50 translations)
 
-- [ ] Pilot selection list (~50, echoing Liedes' languages where possible)
-- [ ] Preprocessing pipeline: NFC, drop empty/`<range>`, length filters,
-      `<2xxx>` target tags
-- [ ] SentencePiece BPE 32k (byte fallback, tags as user-defined symbols) +
-      atomic-tag and round-trip tests
-- [ ] Transformer-big config in HF Transformers (from scratch) + training
-      script (Seq2SeqTrainer, bf16, YAML config, ClearML logging)
-- [ ] Overfit-100-pairs sanity check
+- [x] Pilot selection list (~50, echoing Liedes' languages where possible) —
+      `samileides.pilot` → `experiments/selection-pilot.csv` (50 languages,
+      all 8 holdouts, diverse top-ups)
+- [x] Preprocessing pipeline: NFC, drop empty/`<range>`, length filters,
+      `<2xxx>` target tags (`samileides.preprocess`, +tests)
+- [x] SentencePiece BPE 32k (byte fallback, tags as user-defined symbols) +
+      atomic-tag and round-trip tests (`samileides.tokenizer`, +tests;
+      `add_dummy_prefix=False` so the tag is token 0)
+- [x] Evaluation module: chrF3/chrF3+/chrF3++, spBLEU, BLEU (silnlp/sacreBLEU
+      conventions); identity=100 / noise≈0 checks; source-copy baseline
+      (`samileides.evaluate`, +tests, spBLEU verified)
+- [x] Sample-sheet generator with configurable passage list (defaults per spec,
+      `configs/passages.yaml`) (`samileides.sheets`, +tests)
+- [x] Transformer-big experiment config committed
+      (`configs/experiments/pilot.yaml`)
+- [ ] Training script (HF Seq2SeqTrainer, bf16, reads pilot.yaml, ClearML
+      logging) — GPU/Linux; develop on the 3090
+- [ ] Overfit-100-pairs sanity check — GPU/Linux
 - [ ] Tiny end-to-end run on Linux 3090 (small model, 3 translations) —
       must produce checkpoint, generated book, metrics, sample sheet
 - [ ] Generation utility: held-out book generation + template mode (any book,
-      any language), beam 5, hard length caps, truncation logging
-- [ ] Evaluation module: chrF3/chrF3+/chrF3++, spBLEU, BLEU (silnlp
-      conventions); fixture cross-check against machine.py; trivial baselines
-- [ ] Sample-sheet generator with configurable passage list (defaults per spec)
+      any language), beam 5, hard length caps, truncation logging — GPU/Linux
+- [ ] machine.py cross-check of the metrics on a shared fixture
 - [ ] ClearML job packaging for the remote H100s; rclone artefact sync
 - [ ] **Pilot H100 run** (< 12 h) → metrics tables, generated books, sheets
 - [ ] Review pilot results with David; record conclusions in `experiments/`
