@@ -71,6 +71,28 @@ change; tick tasks `[x]` as they are completed.
 - [ ] **Pilot H100 run** (< 12 h) → metrics tables, generated books, sheets
 - [ ] Review pilot results with David; record conclusions in `experiments/`
 
+## Local experiment — single-family (Indo-European), whole-OT holdouts
+
+Substantial 3090 run while ClearML/H100 access is pending (spec.md,
+"Single-family (Indo-European) run"). Tests whether one-family training helps
+held-out languages, and whether the model can draft an entire withheld OT.
+
+- [x] Curated Indo-European code→branch map
+      (`configs/families/indo_european.csv`)
+- [x] Family selection builder (`samileides.family`, all IE languages, best
+      translation each, holdouts forced in) → `experiments/selection-ie.csv`
+      (34 languages: Germanic 7, Slavic 8, Romance 6, Indo-Aryan 10, Iranian 2,
+      Baltic 1)
+- [x] Whole-OT holdout config for English/German/Hindi (`configs/holdouts-ie.yaml`)
+- [x] transformer-base experiment config (`configs/experiments/ie_base.yaml`,
+      ≈61M params, sized for a few hours on the 3090)
+- [x] Throughput/memory probe on the 3090 (≈5 steps/s, 759k train pairs, fits
+      in 24 GB)
+- [ ] Full training run on the 3090 (~3–4 h) — in progress
+- [ ] Generate the withheld OTs (English/German/Hindi), score, sample sheets
+- [ ] Compare vs diverse pilot on shared holdouts (English OT directly;
+      German/Hindi on the Genesis subset); write up in `experiments/`
+
 ## Phase 2 — ablations (pilot config)
 
 - [ ] 3× holdout-language oversampling vs none

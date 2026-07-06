@@ -196,6 +196,53 @@ Artefacts:
    kept separate in reporting.
 8. **Report and publish.**
 
+## Single-family (Indo-European) run
+
+A substantial *local* experiment run on the 3090 while ClearML access to the
+H100s is pending. Two questions motivate it:
+
+1. **Does restricting training to one language family help held-out
+   languages?** Hypothesis: a held-out language surrounded by close relatives
+   (German among Dutch/Danish/Swedish; Hindi among Gujarati/Marathi/Nepali/
+   Bengali/…) transfers morphology and lexicon better than one embedded in a
+   maximally diverse mix. The content knowledge Liedes relied on is
+   language-independent, but the *decoding into* a held-out language should
+   benefit from siblings. This run trains on **Indo-European only**; its
+   held-out scores are compared against the diverse pilot on the shared
+   holdouts to isolate the family-restriction effect.
+2. **Can the model draft a whole OT that does not yet exist?** Rather than the
+   pilot's book-level Genesis holdouts, the **entire OT is withheld** from each
+   test language (train on their NT + the full Bibles of the sibling
+   languages), then generated end-to-end — the practical "no OT exists yet"
+   scenario this project ultimately serves.
+
+Design:
+
+- **Selection**: every Indo-European language in the corpus with ≥5k verses,
+  best-covered translation per language — 34 languages across Germanic (7),
+  Slavic (8), Romance (6), Indo-Aryan (10), Iranian (2), Baltic (1). Curated
+  code→branch map: `configs/families/indo_european.csv`; reproducible builder:
+  `samileides.family` → `experiments/selection-ie.csv`. Partial (NT-only) IE
+  translations are kept, as elsewhere. The Greek source (`grc`) and ancient
+  Hebrew (`hbo`) are excluded as targets.
+- **Holdouts** (`configs/holdouts-ie.yaml`): whole OT withheld from English
+  (`engbsb`), German (`deuelbbk`) and Hindi (`hin2017`); each keeps close
+  siblings in training and has a full OT reference for scoring. English OT is
+  directly comparable to the pilot's English holdout; German and Hindi differ
+  from the pilot (whole OT here vs Genesis-only there), so cross-run comparison
+  for those two is done on the Genesis subset of the generated OT.
+- **Model/config** (`configs/experiments/ie_base.yaml`): transformer-**base**
+  (d_model 512, 6+6 layers, 8 heads, FFN 2048, ≈61M params), BPE 32k, bf16,
+  sized so the run finishes in a few hours on one RTX 3090 (measured ≈5
+  optimiser steps/s; 60k steps ≈ 3–4 h). This is a dev-box run; transformer-big
+  remains the H100 target.
+- **Evaluation**: the standard metric set per held-out OT per language, plus a
+  Genesis-subset score for pilot comparability, and the source-copy baseline.
+
+If family-restriction helps, later phases can test *other* single families
+(e.g. an all-Bantu or all-Austronesian run) and family-vs-diverse at H100
+scale.
+
 ## Infrastructure
 
 - **Dev**: this repo, developed on Windows; data prep and analysis must run on

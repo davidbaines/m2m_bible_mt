@@ -1,0 +1,16 @@
+# Holdouts for the single-family (Indo-European) run (spec.md, "Single-family
+# (Indo-European) run"). Unlike the pilot's book-level Genesis holdouts, here
+# the WHOLE OT is withheld from each test language: the model trains on their
+# NT plus the full Bibles of the sibling languages, then must draft the entire
+# OT — the practical "no OT exists yet" scenario.
+#
+# Test languages (each Indo-European, each with close siblings retained):
+#   eng  Germanic    siblings: nld, dan, swe (+ Germanic partials)
+#   deu  Germanic    siblings: nld, dan, swe
+#   hin  Indo-Aryan  siblings: guj, mar, npi, ben, ory, pan, hne, asm
+holdouts:
+  engbsb: [OT]
+  deuelbbk: [OT]
+  hin2017: [OT]
+valid_size: 5000
+seed: 13
