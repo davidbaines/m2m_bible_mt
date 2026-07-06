@@ -48,15 +48,26 @@ change; tick tasks `[x]` as they are completed.
       `configs/passages.yaml`) (`samileides.sheets`, +tests)
 - [x] Transformer-big experiment config committed
       (`configs/experiments/pilot.yaml`)
-- [ ] Training script (HF Seq2SeqTrainer, bf16, reads pilot.yaml, ClearML
-      logging) — GPU/Linux; develop on the 3090
-- [ ] Overfit-100-pairs sanity check — GPU/Linux
-- [ ] Tiny end-to-end run on Linux 3090 (small model, 3 translations) —
-      must produce checkpoint, generated book, metrics, sample sheet
-- [ ] Generation utility: held-out book generation + template mode (any book,
-      any language), beam 5, hard length caps, truncation logging — GPU/Linux
+- [x] Training script (HF Seq2SeqTrainer, bf16, reads pilot.yaml, ClearML
+      logging) — GPU/Linux; develop on the 3090 (`samileides.train`,
+      `config.py`/`dataset.py`/`model.py`/`data_pipeline.py`, +tests;
+      `--clearml` opt-in). Verified on Ubuntu 24.04 + RTX 3090, torch cu130,
+      bf16 (`experiments/dev-3090-setup.md`)
+- [x] Overfit-100-pairs sanity check — GPU/Linux (`train --overfit 100`;
+      label smoothing disabled in overfit mode so loss can reach ~0;
+      eval_loss 0.006 → PASS)
+- [x] Tiny end-to-end run on Linux 3090 (small model, 3 translations) —
+      produced checkpoint, tokeniser, generated Jonah, metrics.csv/.md and a
+      populated sample sheet (`configs/experiments/smoke.yaml`,
+      `configs/holdouts-smoke.yaml`, `experiments/selection-smoke.csv`;
+      held-out chrF3 17.82 vs source-copy 0.38)
+- [x] Generation utility: held-out book generation + template mode (any book,
+      any language), beam 5, hard length caps, truncation logging
+      (`samileides.generate`) — GPU/Linux
 - [ ] machine.py cross-check of the metrics on a shared fixture
 - [ ] ClearML job packaging for the remote H100s; rclone artefact sync
+      (training already emits ClearML scalars via `--clearml`; remote job
+      packaging + rclone sync still to do)
 - [ ] **Pilot H100 run** (< 12 h) → metrics tables, generated books, sheets
 - [ ] Review pilot results with David; record conclusions in `experiments/`
 

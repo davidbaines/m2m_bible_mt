@@ -20,8 +20,14 @@ def train_tokenizer(
     tags: list[str],
     vocab_size: int = 32000,
     model_type: str = "bpe",
+    pad_id: int = 3,
 ) -> Path:
-    """Train a SentencePiece model; returns the .model path."""
+    """Train a SentencePiece model; returns the .model path.
+
+    ``pad_id`` enables an explicit ``<pad>`` control symbol (disabled by
+    default in SentencePiece) so the seq2seq collator has a padding token;
+    ids stay unk=0, bos=1, eos=2, pad=3, then the atomic tags.
+    """
     model_prefix.parent.mkdir(parents=True, exist_ok=True)
     corpus_path = model_prefix.with_suffix(".txt")
     with corpus_path.open("w", encoding="utf-8", newline="\n") as f:
@@ -39,6 +45,7 @@ def train_tokenizer(
         shuffle_input_sentence=True,
         normalization_rule_name="identity",  # we NFC-normalise ourselves
         add_dummy_prefix=False,  # the language tag must be token 0
+        pad_id=pad_id,
     )
     return model_prefix.with_suffix(".model")
 
