@@ -88,10 +88,12 @@ held-out languages, and whether the model can draft an entire withheld OT.
       ≈61M params, sized for a few hours on the 3090)
 - [x] Throughput/memory probe on the 3090 (≈5 steps/s, 759k train pairs, fits
       in 24 GB)
-- [ ] Full training run on the 3090 (~3–4 h) — in progress
-- [ ] Generate the withheld OTs (English/German/Hindi), score, sample sheets
+- [x] Full training run on the 3090 (60k steps, ~2.1 h, eval_loss 2.92)
+- [x] Generate the withheld OTs (English/German/Hindi), score, sample sheets —
+      chrF3 40.7/40.5/38.1, every book beats the source-copy baseline; results
+      in `experiments/ie-base-results.md`
 - [ ] Compare vs diverse pilot on shared holdouts (English OT directly;
-      German/Hindi on the Genesis subset); write up in `experiments/`
+      German/Hindi on the Genesis subset) — pending a pilot run
 
 ## Phase 2 — ablations (pilot config)
 
@@ -150,9 +152,9 @@ Gated sharing of successful models (spec.md, "Publishing"). Agreed with David
       (32 languages, all shareable, model licence `cc-by-sa-4.0`), +test
 - [x] Publishable experiment ready: `configs/experiments/ie_base_shareable.yaml`
       + `configs/holdouts-ie-shareable.yaml` (same design as ie_base, licence-clean)
-- [ ] Train `ie_base_shareable` (after the current `ie_base` run finishes on the
-      3090), generate, and do the first real publish through the gate
-- [ ] HF authentication on this box (`HF_TOKEN`) before the first push
+- [~] Train `ie_base_shareable` (licence-clean, 32 languages) — training now
+- [ ] Generate + score `ie_base_shareable`, then first real publish through the gate
+- [ ] HF authentication on this box (`hf auth login`) before the first push
 
 ## Phase 8 — report and publish
 
