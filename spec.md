@@ -253,7 +253,42 @@ scale.
   File transfer via the existing rclone + WireGuard setup.
 - **Publishing**: trained checkpoints, tokenisers, generated books and sample
   sheets pushed to the Hugging Face Hub under David's account; the written
-  report lives in this repo.
+  report lives in this repo. Full policy in "Publishing" below.
+
+## Publishing
+
+Successful models are shared on the Hugging Face Hub by a single gated command,
+`samileides.publish` (run after a human review, not automatically). Decisions
+agreed with David on 2026-07-06:
+
+- **Quality gate**: publishing is refused unless every generated held-out book
+  beats the source-copy baseline on chrF3. The command re-checks this from the
+  run's `generated/metrics.csv`, so `samileides.generate` must have been run.
+- **Licence gate**: publishing is refused unless every training translation
+  carries a licence that permits sharing a *derived* model. The eBible
+  `Redistributable` flag is `True` for all translations and only covers the
+  source text, so the real signal is `licence_Licence_Type`. A trained model is
+  treated as a derivative work. Shareable licences: `Public Domain`, `by`,
+  `by-sa` (commercial use allowed); `by-nc` is shareable only non-commercially
+  (opt-in with `--allow-nc`). Never shareable as a derivative: `by-nd`,
+  `by-nc-nd`, `Unknown`, and anything else. Implication: a publishable run must
+  train on a licence-filtered selection; runs that include, e.g., `by-nc-nd`
+  German (`deuelbbk`) are research/comparison only. ShareAlike propagates, so
+  any `by-sa` source forces the model licence to `cc-by-sa-4.0`; otherwise
+  `cc-by-4.0` (any `by`) or `cc0-1.0` (all public domain). The model card lists
+  every source translation and its licence.
+- **Repository layout**: one repository per run under `DavidCBaines`, named
+  `ebible_m2m-<experiment>` (e.g. `ebible_m2m-ie-base`). Public by default,
+  since only redistributable data reaches a published model. The best models
+  may later be mirrored to the `bible-nlp` organisation. Liedes' name is not
+  used in any repository name.
+- **Loadability**: the raw SentencePiece model is packaged as a
+  `MarianTokenizer`, so `MarianMTModel.from_pretrained` plus
+  `MarianTokenizer.from_pretrained` work directly.
+- **Contents**: model weights and config, the loadable tokeniser, the generated
+  books, metrics and sample sheets, the committed config and selection list
+  (for provenance), and a model card recording architecture, held-out books,
+  metrics, every source licence, and the git commit and seed for reproduction.
 
 ## Repository layout
 
@@ -306,3 +341,9 @@ How each piece is proven to work before it is relied on:
 7. **Reproducibility**: every run records its selection list, config, git
    commit and seed in ClearML; re-running a config regenerates identical
    train/valid/test splits (asserted by checksum).
+8. **Publishing gates**: unit tests assert the quality gate rejects any run
+   whose held-out chrF3 does not beat the baseline, and the licence gate flags
+   every non-derivative-permitting or unknown-licence source; the packaged
+   tokeniser round-trips and the staged repository loads with `from_pretrained`.
+   A `--dry-run` builds the full repository (card, tokeniser, artefacts) without
+   pushing, for inspection before any upload.

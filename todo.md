@@ -128,9 +128,31 @@ held-out languages, and whether the model can draft an entire withheld OT.
 - [ ] Fine-tune a pretrained multilingual model (e.g. NLLB-200) on identical
       data/holdouts; report separately from the from-scratch results
 
+## Hugging Face publishing pipeline
+
+Gated sharing of successful models (spec.md, "Publishing"). Agreed with David
+2026-07-06.
+
+- [x] Licence policy module: classify each translation's licence, flag
+      non-derivative-permitting/unknown sources, derive the model licence
+      (`samileides.licensing`, +tests). Finding: `Redistributable` is `True`
+      for all; the real signal is `licence_Licence_Type`
+- [x] HF packaging: SentencePiece → loadable `MarianTokenizer`; model-card
+      builder (`samileides.hf_export`, +tests)
+- [x] Publish command with quality gate (chrF3 beats baseline) + licence gate,
+      staging assembly, `--dry-run`, interactive confirm (`samileides.publish`,
+      +tests). Verified end-to-end on the smoke run: dry-run staged a full repo
+      and `from_pretrained` loaded and generated from it
+- [x] Repository README (`README.md`)
+- [ ] First real publish once a licence-clean run clears the gate (needs a
+      selection filtered to redistributable licences; the current `ie_base`
+      run includes `by-nc-nd`/`by-nd`/Unknown sources and is not publishable)
+- [ ] HF authentication on this box (`HF_TOKEN`) before the first push
+
 ## Phase 8 — report and publish
 
 - [ ] Push checkpoints, tokenisers, generated books, sample sheets to HF Hub
+      (via the publishing pipeline above)
 - [ ] `report/` write-up: setup, deviations table, metric tables per phase,
       qualitative samples, answers to Liedes' open questions
 - [ ] Final review pass with David
