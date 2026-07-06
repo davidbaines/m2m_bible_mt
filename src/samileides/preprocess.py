@@ -28,6 +28,16 @@ def target_tag(language_code: str) -> str:
     return f"<2{language_code}>"
 
 
+def source_tag(language_code: str) -> str:
+    """Source-language tag for many-to-many training (spec.md phase 4).
+
+    One-to-many uses only the target tag; many-to-many prepends the source tag
+    as well, so the model knows both which language it is reading and which it
+    should produce. Kept distinct from the target tag (`<1..>` vs `<2..>`).
+    """
+    return f"<1{language_code}>"
+
+
 def build_pairs(
     manifest: pd.DataFrame,
     verses: pd.DataFrame,

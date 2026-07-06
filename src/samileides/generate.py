@@ -100,9 +100,13 @@ def generate_holdouts(run_dir: Path, out_dir: Path, args) -> pd.DataFrame:
         for book in sorted(sub[VREF_COLUMN].map(book_of).unique()):
             book_pairs = sub[sub[VREF_COLUMN].map(book_of) == book].reset_index(drop=True)
             print(f"Generating {translation}/{book}: {len(book_pairs)} verses ...")
+            srcs = book_pairs[SRC_COLUMN].tolist()
+            if cfg.data.pairing == "many-to-many":
+                from .manytomany import to_m2m_source
+
+                srcs = [to_m2m_source(s) for s in srcs]
             hyps, truncated = generate_texts(
-                model, sp, device,
-                book_pairs[SRC_COLUMN].tolist(),
+                model, sp, device, srcs,
                 beam=beam, length_penalty=cfg.inference.length_penalty,
                 max_length=max_length, batch_size=args.batch_size,
             )
@@ -210,7 +214,14 @@ def generate_template(run_dir: Path, out_dir: Path, args) -> None:
     book_mask = source.index.map(book_of) == args.book
     vrefs = [v for v, keep in zip(source.index, book_mask) if keep and source[v]]
     tag = target_tag(args.lang)
-    srcs = [f"{tag} {normalise(source[v])}" for v in vrefs]
+    if cfg.data.pairing == "many-to-many":
+        from .manytomany import GREEK_CODE
+        from .preprocess import source_tag
+
+        stag = source_tag(GREEK_CODE)
+        srcs = [f"{tag} {stag} {normalise(source[v])}" for v in vrefs]
+    else:
+        srcs = [f"{tag} {normalise(source[v])}" for v in vrefs]
     print(f"Template: {args.book} -> {tag} ({len(srcs)} verses)")
     hyps, truncated = generate_texts(
         model, sp, device, srcs, beam=beam,

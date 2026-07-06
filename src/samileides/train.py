@@ -68,11 +68,25 @@ def _upload_artifacts(output: Path) -> None:
     print(f"  uploaded run artifacts to ClearML task {task.id}")
 
 
+def _leading_tags(src: str) -> list[str]:
+    """The leading `<1..>`/`<2..>` language tags on a source line."""
+    out = []
+    for tok in src.split(" "):
+        if len(tok) > 2 and tok[0] == "<" and tok[-1] == ">" and tok[1] in "12":
+            out.append(tok)
+        else:
+            break
+    return out
+
+
 def train_tokenizer_for(cfg: ExperimentConfig, train_pairs, output: Path):
     """Train (or reuse) the SentencePiece model on the training split only."""
     tok_dir = output / "tokenizer"
     model_path = tok_dir / "spm.model"
-    tags = sorted({s.split(" ", 1)[0] for s in train_pairs[SRC_COLUMN]})
+    tags = set()
+    for s in train_pairs[SRC_COLUMN]:
+        tags.update(_leading_tags(s))
+    tags = sorted(tags)
     corpus = train_pairs[SRC_COLUMN].tolist() + train_pairs[TGT_COLUMN].tolist()
     train_tokenizer(
         corpus,
@@ -133,12 +147,24 @@ def run(args) -> None:
     print(f"Preparing data for '{cfg.name}' ...")
     data = prepare(cfg)
     assert_no_leakage(data.splits, data.holdouts)
+
+    if cfg.data.pairing == "many-to-many":
+        from .manytomany import build_m2m_pairs
+
+        train_source_pairs = build_m2m_pairs(
+            data.splits.train, data.splits.valid, data.verses, data.source,
+            data.language_of, k=cfg.data.k, seed=cfg.training.seed,
+        )
+        print(f"  many-to-many (K={cfg.data.k}): {len(data.train_pairs)} target verses "
+              f"-> {len(train_source_pairs)} training pairs")
+    else:
+        train_source_pairs = data.train_pairs
     print(
-        f"  pairs: train={len(data.train_pairs)} valid={len(data.valid_pairs)} "
+        f"  pairs: train={len(train_source_pairs)} valid={len(data.valid_pairs)} "
         f"test={len(data.test_pairs)}"
     )
 
-    sp = train_tokenizer_for(cfg, data.train_pairs, output)
+    sp = train_tokenizer_for(cfg, train_source_pairs, output)
     print(f"  tokenizer: {sp.get_piece_size()} pieces "
           f"(unk={sp.unk_id()} bos={sp.bos_id()} eos={sp.eos_id()} pad={sp.pad_id()})")
 
@@ -146,7 +172,7 @@ def run(args) -> None:
     from .preprocess import length_filter
 
     train_pairs, train_stats = length_filter(
-        data.train_pairs, encode, cfg.data.max_len, cfg.data.max_ratio
+        train_source_pairs, encode, cfg.data.max_len, cfg.data.max_ratio
     )
     valid_pairs, _ = length_filter(
         data.valid_pairs, encode, cfg.data.max_len, cfg.data.max_ratio

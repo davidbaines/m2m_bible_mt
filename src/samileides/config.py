@@ -29,6 +29,8 @@ class DataConfig:
     source: str = "greek"
     max_len: int = 192
     max_ratio: float = 2.0
+    pairing: str = "one-to-many"   # or "many-to-many"
+    k: int = 4                     # many-to-many: sources sampled per target verse
 
 
 @dataclass
