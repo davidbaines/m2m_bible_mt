@@ -20,5 +20,5 @@ clearml.conf
 .DS_Store
 Thumbs.db
 
-# Personal conversation transcript, not part of the project
-conversation_with_claude.txt
+# Personal conversation transcripts and exports, not part of the project
+conversation_with_claude*
