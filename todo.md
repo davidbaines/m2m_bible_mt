@@ -20,9 +20,12 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
   the H100s.
 - **ClearML**: connected. Authenticated to `api.sil.hosted.allegro.ai`; queue
   `jobs_backlog` exists with 8 GPU workers listening (`aqua-gpu-dallas:gpu0-7`).
-- **Blocked on David**: a git remote the agents can clone (e.g. a GitHub repo)
-  so `samileides.train` can be packaged as a ClearML task; choice of the next
-  run; whether to make the published repo public.
+- **Git remote**: `github.com/davidbaines/m2m_bible_mt`, `main` up to date, so
+  the agents can clone the code. Ready to package a ClearML task.
+- **Blocked on David**: choice of the first remote run (recommendation:
+  transformer-big many-to-many); confirm the GitHub repo is cloneable by the
+  agents (public, or a token/deploy key if private); whether to make the
+  published HF repo public.
 - Nothing is running in the background right now.
 
 ## Active - next up
