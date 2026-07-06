@@ -430,6 +430,13 @@ section above.
   even though only redistributable data is included.
 - **2026-07-06, roadmap**: prioritise many-to-many, then transformer-big on the
   A100, with the NLLB fine-tune as a separate track (see "Roadmap" above).
+- **2026-07-06, local experiments while ClearML is down**: the H100 agents are
+  blocked by an agent-side bug (`experiments/clearml-agent-issue.md`), so the
+  3090 is used for: (a) the many-to-many pair sampler, built and verified
+  (`samileides.manytomany`); (b) a modest NLLB-200-600M many-to-many fine-tune
+  (`samileides.train_nllb`, `configs/experiments/nllb_ie.yaml`), generating the
+  held-out OTs from a Spanish pivot since NLLB has no Koine Greek. NLLB smoke on
+  3 languages drafted held-out Jonah at chrF3 46 after only 150 steps.
 
 ## Maintaining these documents
 

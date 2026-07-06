@@ -31,6 +31,7 @@ class DataConfig:
     max_ratio: float = 2.0
     pairing: str = "one-to-many"   # or "many-to-many"
     k: int = 4                     # many-to-many: sources sampled per target verse
+    pivot: str = "spa"             # NLLB eval: source language for held-out generation
 
 
 @dataclass
@@ -42,6 +43,7 @@ class TokenizerConfig:
 @dataclass
 class ModelConfig:
     arch: str = "marian"
+    pretrained: str | None = None   # HF model id for fine-tune archs (e.g. NLLB)
     encoder_layers: int = 6
     decoder_layers: int = 6
     d_model: int = 1024
@@ -67,6 +69,7 @@ class TrainingConfig:
     early_stopping_patience: int = 5
     eval_every_steps: int = 2000
     seed: int = 13
+    gradient_checkpointing: bool = False
     # Batch is sized by sentence count on the smaller dev GPU; the training
     # script derives it from max_tokens_per_batch unless this is set.
     per_device_batch_size: int | None = None

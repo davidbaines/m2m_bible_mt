@@ -1,0 +1,39 @@
+# NLLB-600M fine-tune smoke test on the 3090: validates the fine-tune + pivot
+# generation path on the 3-language smoke selection. Not a real run.
+name: nllb_smoke
+phase: pretrained
+
+data:
+  selection: experiments/selection-smoke.csv
+  holdouts: configs/holdouts-smoke.yaml
+  source: greek
+  max_len: 128
+  max_ratio: 2.0
+  pairing: many-to-many
+  k: 4
+  pivot: spa
+
+model:
+  arch: nllb
+  pretrained: facebook/nllb-200-distilled-600M
+  label_smoothing: 0.1
+
+training:
+  optimizer: adamw
+  lr: 3.0e-5
+  warmup_steps: 20
+  lr_scheduler: inverse_sqrt
+  per_device_batch_size: 8
+  gradient_accumulation: 1
+  max_grad_norm: 1.0
+  bf16: true
+  max_steps: 150
+  early_stopping_patience: 5
+  eval_every_steps: 50
+  seed: 13
+  gradient_checkpointing: true
+
+inference:
+  beam: 5
+  length_penalty: 1.0
+  max_length: 128

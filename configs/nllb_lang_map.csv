@@ -1,0 +1,39 @@
+# eBible ISO 639-3 language code -> NLLB FLORES-200 code, for the NLLB
+# fine-tune track (spec.md phase 7). Languages not listed are skipped for NLLB
+# (e.g. Latin, and Koine Greek, which NLLB does not cover). Scripts follow the
+# text actually in the corpus; a couple of eBible editions are transliterated,
+# which may not match NLLB's expected script.
+languageCode,flores
+eng,eng_Latn
+deu,deu_Latn
+nld,nld_Latn
+dan,dan_Latn
+swe,swe_Latn
+nob,nob_Latn
+isl,isl_Latn
+spa,spa_Latn
+por,por_Latn
+fra,fra_Latn
+ita,ita_Latn
+ron,ron_Latn
+rus,rus_Cyrl
+ukr,ukr_Cyrl
+bel,bel_Cyrl
+pol,pol_Latn
+ces,ces_Latn
+slk,slk_Latn
+hrv,hrv_Latn
+srp,srp_Cyrl
+lit,lit_Latn
+hin,hin_Deva
+ben,ben_Beng
+guj,guj_Gujr
+mar,mar_Deva
+npi,npi_Deva
+asm,asm_Beng
+ory,ory_Orya
+pan,pan_Guru
+urd,urd_Arab
+pes,pes_Arab
+ckb,ckb_Arab
+swh,swh_Latn

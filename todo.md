@@ -19,6 +19,9 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
   `jobs_backlog`, once the ClearML agent env is fixed (below).
 - **Many-to-many sampler**: built and verified on the 3090
   (`samileides.manytomany`, smoke_m2m).
+- **NLLB fine-tune**: pipeline built (`samileides.train_nllb`, `samileides.nllb`);
+  smoke drafted held-out Jonah at chrF3 46 after 150 steps. `nllb_ie` (600M,
+  IE many-to-many) running on the 3090 now.
 - **ClearML**: connected (queue `jobs_backlog`, 8 workers). Remote launch code
   is in place (`train --remote-queue`, artifact upload, `samileides.fetch`) and
   the git remote (`github.com/davidbaines/m2m_bible_mt`, public) works, but the
@@ -66,8 +69,9 @@ these as a backlog to pull from.
 - **Tokeniser variants**: unigram, then byte-level, on the best config so far.
 - **English-source variant**: one-to-many from `engbsb` (English leaves the
   holdout set); evaluate remaining holdouts.
-- **Pretrained comparison**: fine-tune NLLB-200 on identical data and holdouts;
-  report separately (spec.md "Roadmap", track 6).
+- **Pretrained comparison**: NLLB-200-600M fine-tune pipeline built
+  (`samileides.train_nllb`); a modest IE many-to-many run is underway on the
+  3090. Report separately (spec.md "Roadmap", track 6).
 - **Other single families**: an all-Bantu or all-Austronesian run, and
   family-versus-diverse at H100 scale.
 - **Pilot (superseded)**: `configs/experiments/pilot.yaml` (transformer-big, 50
