@@ -72,8 +72,10 @@ def test_package_tokenizer_roundtrips(tmp_path):
 def test_model_card_has_key_sections():
     lic = pd.DataFrame({"translationId": ["spablm"], "languageCode": ["spa"],
                         "licence": ["Public Domain"]})
-    metrics = pd.DataFrame({"translation": ["engbsb"], "book": ["OT"],
-                            "chrF3": [30.0], "copy_chrF3": [1.0]})
+    metrics = pd.DataFrame({"translation": ["engbsb"], "language": ["eng"],
+                            "book": ["GEN"], "verses": [100],
+                            "chrF3": [30.0], "copy_chrF3": [1.0],
+                            "other_chrF3": [12.0], "other_lang": ["fra"]})
     card = build_model_card(
         repo_id="DavidCBaines/ebible_m2m-ie-base", experiment="ie_base",
         n_params=61_000_000, licences=lic, holdouts={"engbsb": ["OT"]},

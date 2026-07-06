@@ -64,6 +64,31 @@ def _yaml_metadata(languages, licence, tags) -> str:
     )
 
 
+def _summary_metric_table(metrics: pd.DataFrame) -> str:
+    """Verse-weighted per-language summary; per-book detail stays in the CSV."""
+    if metrics is None or not len(metrics):
+        return "Metrics were not recorded for this run."
+    import numpy as np
+
+    metric_cols = [c for c in ("chrF3", "spBLEU", "BLEU", "copy_chrF3", "other_chrF3")
+                   if c in metrics.columns]
+    rows = []
+    for (t, lang), g in metrics.groupby(["translation", "language"]):
+        row = {"translation": t, "language": lang,
+               "books": len(g), "verses": int(g["verses"].sum())}
+        for c in metric_cols:
+            row[c] = round(float(np.average(g[c], weights=g["verses"])), 2)
+        if "other_lang" in g.columns and len(g["other_lang"].mode()):
+            row["other_lang"] = g["other_lang"].mode().iloc[0]
+        rows.append(row)
+    table = pd.DataFrame(rows).to_markdown(index=False)
+    return (
+        table
+        + "\n\nScores are verse-weighted across each language's held-out books. "
+        "Per-book metrics for every book are in `generated/metrics.csv`."
+    )
+
+
 def build_model_card(
     *,
     repo_id: str,
@@ -87,10 +112,7 @@ def build_model_card(
     src_table = licences.rename(
         columns={"translationId": "translation", "languageCode": "language"}
     )[["translation", "language", "licence"]].to_markdown(index=False)
-    metric_table = (
-        metrics.to_markdown(index=False) if metrics is not None and len(metrics)
-        else "Metrics were not recorded for this run."
-    )
+    metric_table = _summary_metric_table(metrics)
 
     body = f"""# {repo_id.split('/')[-1]}
 
