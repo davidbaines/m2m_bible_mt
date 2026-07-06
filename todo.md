@@ -15,32 +15,39 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
   pipeline with quality and licence gates.
 - **Live on the Hub**: `DavidCBaines/ebible_m2m-ie-base-shareable` (private,
   `cc-by-sa-4.0`), verified loadable with `from_pretrained`.
-- **Next action**: bring many-to-many forward, and/or scale to transformer-big
-  on the A100 (see spec.md "Roadmap to stronger results"); wire up ClearML for
-  the H100s.
-- **ClearML**: connected. Authenticated to `api.sil.hosted.allegro.ai`; queue
-  `jobs_backlog` exists with 8 GPU workers listening (`aqua-gpu-dallas:gpu0-7`).
-- **Git remote**: `github.com/davidbaines/m2m_bible_mt`, `main` up to date, so
-  the agents can clone the code. Ready to package a ClearML task.
-- **Blocked on David**: choice of the first remote run (recommendation:
-  transformer-big many-to-many); confirm the GitHub repo is cloneable by the
-  agents (public, or a token/deploy key if private); whether to make the
-  published HF repo public.
+- **Next action**: the flagship transformer-big many-to-many run on
+  `jobs_backlog`, once the ClearML agent env is fixed (below).
+- **Many-to-many sampler**: built and verified on the 3090
+  (`samileides.manytomany`, smoke_m2m).
+- **ClearML**: connected (queue `jobs_backlog`, 8 workers). Remote launch code
+  is in place (`train --remote-queue`, artifact upload, `samileides.fetch`) and
+  the git remote (`github.com/davidbaines/m2m_bible_mt`, public) works, but the
+  plumbing test **failed on the agent side**: workers run each task in a fresh
+  `python:3.12-bullseye` container where `clearml-agent 2.0.4`'s own bootstrap
+  crashes with `ModuleNotFoundError: No module named 'pkg_resources'` (it
+  installs setuptools 83, which no longer ships pkg_resources). Needs an SIL
+  admin fix; nothing to change on our side.
+- **Blocked on David**: SIL to fix the ClearML agent env (pin `setuptools<81`
+  in the worker/container, upgrade clearml-agent, or set a working default
+  docker image); choice of the next run; whether to make the published HF repo
+  public.
 - Nothing is running in the background right now.
 
 ## Active - next up
 
-- [ ] ClearML plumbing test: repeat the IE base run on `jobs_backlog`, then pull
-      the checkpoint and artefacts back locally (so the local publish pipeline
-      can use them). Validate the whole remote loop before the big run.
-- [ ] Many-to-many pair sampler: K random sources per target verse per epoch
-      (K default 4); source + target tags. Build and test on the 3090.
-- [ ] Then the flagship run: transformer-big (~210M) many-to-many on
-      `jobs_backlog`; large batch, longer schedule.
+- [x] Many-to-many pair sampler (`samileides.manytomany`, +tests); wired through
+      train/generate; verified end to end on the 3090 (smoke_m2m)
+- [~] ClearML plumbing: remote launch + artifact upload + `samileides.fetch`
+      built; enqueue works; blocked by the agent-side `pkg_resources` crash
+- [ ] Re-run the plumbing test (smoke on `jobs_backlog`) once SIL fixes the agent
+- [ ] Flagship run: transformer-big (~210M) many-to-many on `jobs_backlog`
+      (needs a committed transformer-big m2m config sized for the remote GPU)
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David
 
+- [ ] SIL to fix the ClearML agent bootstrap on the workers (pin `setuptools<81`,
+      upgrade clearml-agent, or set a working default docker image).
 - [ ] Approve making the published HF repo public.
 
 ## Roadmap (strategic direction, not a strict order)
