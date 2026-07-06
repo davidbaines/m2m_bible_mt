@@ -19,3 +19,6 @@ clearml.conf
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# Personal conversation transcript, not part of the project
+conversation_with_claude.txt
