@@ -144,9 +144,14 @@ Gated sharing of successful models (spec.md, "Publishing"). Agreed with David
       +tests). Verified end-to-end on the smoke run: dry-run staged a full repo
       and `from_pretrained` loaded and generated from it
 - [x] Repository README (`README.md`)
-- [ ] First real publish once a licence-clean run clears the gate (needs a
-      selection filtered to redistributable licences; the current `ie_base`
-      run includes `by-nc-nd`/`by-nd`/Unknown sources and is not publishable)
+- [x] Shareable-licence selection: `samileides.family --shareable` filters to
+      derivative-permitting licences (auto-substitutes Public Domain editions,
+      e.g. German `deutkw` for `deuelbbk`) → `experiments/selection-ie-shareable.csv`
+      (32 languages, all shareable, model licence `cc-by-sa-4.0`), +test
+- [x] Publishable experiment ready: `configs/experiments/ie_base_shareable.yaml`
+      + `configs/holdouts-ie-shareable.yaml` (same design as ie_base, licence-clean)
+- [ ] Train `ie_base_shareable` (after the current `ie_base` run finishes on the
+      3090), generate, and do the first real publish through the gate
 - [ ] HF authentication on this box (`HF_TOKEN`) before the first push
 
 ## Phase 8 — report and publish

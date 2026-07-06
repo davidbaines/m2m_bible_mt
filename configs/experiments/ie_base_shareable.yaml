@@ -1,0 +1,52 @@
+# Publishable single-family (Indo-European) run. Identical to ie_base.yaml in
+# scale and design, but trained only on translations whose licences permit
+# sharing a derived model (32 languages), so the result can be published to the
+# Hugging Face Hub (spec.md, "Publishing"). transformer-base, sized for a few
+# hours on one RTX 3090.
+name: ie_base_shareable
+phase: one-to-many
+
+data:
+  selection: experiments/selection-ie-shareable.csv
+  holdouts: configs/holdouts-ie-shareable.yaml
+  source: greek
+  max_len: 192
+  max_ratio: 2.0
+
+tokenizer:
+  type: bpe
+  vocab_size: 32000
+
+model:
+  arch: marian
+  encoder_layers: 6
+  decoder_layers: 6
+  d_model: 512
+  encoder_attention_heads: 8
+  decoder_attention_heads: 8
+  encoder_ffn_dim: 2048
+  decoder_ffn_dim: 2048
+  dropout: 0.1
+  label_smoothing: 0.1
+
+training:
+  optimizer: adamw
+  lr: 5.0e-4
+  warmup_steps: 4000
+  lr_scheduler: inverse_sqrt
+  max_tokens_per_batch: 16000
+  per_device_batch_size: 48
+  gradient_accumulation: 2
+  max_grad_norm: 1.0
+  bf16: true
+  max_steps: 60000
+  early_stopping_patience: 6
+  eval_every_steps: 2000
+  seed: 13
+
+inference:
+  beam: 5
+  length_penalty: 1.0
+  max_length: 192
+
+oversample_holdouts: 1
