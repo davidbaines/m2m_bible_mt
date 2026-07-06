@@ -28,15 +28,44 @@ from .splits import assert_no_leakage
 from .tokenizer import load_tokenizer, train_tokenizer
 
 
-def _maybe_clearml(cfg: ExperimentConfig, enable: bool):
-    if not enable:
+def _maybe_clearml(cfg: ExperimentConfig, enable: bool, remote_queue: str | None):
+    """Init a ClearML task; optionally enqueue it to run on a remote agent.
+
+    With ``remote_queue`` set, ``execute_remotely`` captures this repo's git
+    commit, the entry point and args, enqueues the task, and stops the local
+    process. A worker on that queue then reruns the same command. Returns the
+    Task (or None if ClearML is unavailable and not required for remote).
+    """
+    if not enable and not remote_queue:
         return None
     try:
         from clearml import Task
     except ImportError:
+        if remote_queue:
+            raise SystemExit("clearml is required for --remote-queue; install the train extra")
         print("clearml not installed; skipping experiment tracking")
         return None
-    return Task.init(project_name="samileides", task_name=cfg.name)
+    task = Task.init(project_name="samileides", task_name=cfg.name)
+    if remote_queue:
+        # Enqueue and exit locally; the agent reruns the whole script remotely.
+        task.execute_remotely(queue_name=remote_queue, exit_process=True)
+    return task
+
+
+def _upload_artifacts(output: Path) -> None:
+    """If running under a ClearML task, upload the output dir for retrieval."""
+    try:
+        from clearml import Task
+    except ImportError:
+        return
+    task = Task.current_task()
+    if task is None:
+        return
+    # Upload the whole run directory (model, tokeniser, config, summary, and any
+    # generated artefacts) as one zipped artifact, plus register the weights as
+    # a model so it is easy to find in the UI.
+    task.upload_artifact("run", artifact_object=str(output))
+    print(f"  uploaded run artifacts to ClearML task {task.id}")
 
 
 def train_tokenizer_for(cfg: ExperimentConfig, train_pairs, output: Path):
@@ -99,7 +128,7 @@ def run(args) -> None:
     output = Path(args.output_dir) if args.output_dir else repo_root() / "checkpoints" / cfg.name
     output.mkdir(parents=True, exist_ok=True)
 
-    _maybe_clearml(cfg, args.clearml)
+    _maybe_clearml(cfg, args.clearml, args.remote_queue)
 
     print(f"Preparing data for '{cfg.name}' ...")
     data = prepare(cfg)
@@ -175,6 +204,17 @@ def run(args) -> None:
     )
     print(f"Saved model + tokenizer to {output}")
 
+    if args.generate_after and not args.overfit:
+        from types import SimpleNamespace
+
+        from .generate import generate_holdouts
+
+        print("Generating and scoring held-out books ...")
+        gargs = SimpleNamespace(beam=0, max_length=0, batch_size=args.gen_batch_size)
+        generate_holdouts(output, output / "generated", gargs)
+
+    _upload_artifacts(output)
+
     if args.overfit:
         loss = metrics.get("eval_loss", float("inf"))
         threshold = args.overfit_threshold
@@ -191,6 +231,11 @@ def main() -> None:
     p.add_argument("--overfit-threshold", type=float, default=0.5)
     p.add_argument("--num-workers", type=int, default=2)
     p.add_argument("--clearml", action="store_true")
+    p.add_argument("--remote-queue", default=None,
+                   help="enqueue this run on a ClearML queue and exit (e.g. jobs_backlog)")
+    p.add_argument("--generate-after", action="store_true",
+                   help="after training, generate + score held-out books and upload them")
+    p.add_argument("--gen-batch-size", type=int, default=32)
     run(p.parse_args())
 
 

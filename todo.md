@@ -30,19 +30,18 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
 
 ## Active - next up
 
+- [ ] ClearML plumbing test: repeat the IE base run on `jobs_backlog`, then pull
+      the checkpoint and artefacts back locally (so the local publish pipeline
+      can use them). Validate the whole remote loop before the big run.
 - [ ] Many-to-many pair sampler: K random sources per target verse per epoch
-      (K default 4); source + target tags. Highest-impact next step.
-- [ ] Scale to transformer-big (~210M) on the A100 (80 GB); large batch, longer
-      schedule.
-- [ ] Package `samileides.train` as a ClearML task on queue `jobs_backlog`
-      (access confirmed; needs a git remote for the agents to clone the code).
+      (K default 4); source + target tags. Build and test on the 3090.
+- [ ] Then the flagship run: transformer-big (~210M) many-to-many on
+      `jobs_backlog`; large batch, longer schedule.
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David
 
-- [ ] ClearML queue name and a git remote (e.g. a GitHub repo) for the agents.
-- [ ] Choice of the next run (many-to-many vs transformer-big vs NLLB first).
-- [ ] Approve making the published repo public.
+- [ ] Approve making the published HF repo public.
 
 ## Roadmap (strategic direction, not a strict order)
 
