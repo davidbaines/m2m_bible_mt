@@ -1,0 +1,55 @@
+# Many-to-many counterpart of ie_base, for a controlled comparison: identical
+# 34-language Indo-European selection, identical English/German/Hindi whole-OT
+# holdouts, identical transformer-base model and 60k-step compute budget. The
+# only change is the pairing: each target verse is paired with K=4 sampled
+# source languages (plus the Greek composite) instead of Greek alone. Tests
+# whether many-to-many helps held-out generation (spec.md "Roadmap", item 1).
+name: ie_base_m2m
+phase: many-to-many
+
+data:
+  selection: experiments/selection-ie.csv
+  holdouts: configs/holdouts-ie.yaml
+  source: greek
+  max_len: 192
+  max_ratio: 2.0
+  pairing: many-to-many
+  k: 4
+
+tokenizer:
+  type: bpe
+  vocab_size: 32000
+
+model:
+  arch: marian
+  encoder_layers: 6
+  decoder_layers: 6
+  d_model: 512
+  encoder_attention_heads: 8
+  decoder_attention_heads: 8
+  encoder_ffn_dim: 2048
+  decoder_ffn_dim: 2048
+  dropout: 0.1
+  label_smoothing: 0.1
+
+training:
+  optimizer: adamw
+  lr: 5.0e-4
+  warmup_steps: 4000
+  lr_scheduler: inverse_sqrt
+  max_tokens_per_batch: 16000
+  per_device_batch_size: 48
+  gradient_accumulation: 2
+  max_grad_norm: 1.0
+  bf16: true
+  max_steps: 60000
+  early_stopping_patience: 6
+  eval_every_steps: 2000
+  seed: 13
+
+inference:
+  beam: 5
+  length_penalty: 1.0
+  max_length: 192
+
+oversample_holdouts: 1

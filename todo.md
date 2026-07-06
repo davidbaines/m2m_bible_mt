@@ -45,6 +45,9 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
 - [ ] Re-run the plumbing test (smoke on `jobs_backlog`) once SIL fixes the agent
 - [ ] Flagship run: transformer-big (~210M) many-to-many on `jobs_backlog`
       (needs a committed transformer-big m2m config sized for the remote GPU)
+- [ ] Local 3090 while ClearML is down (queued): `nllb_ie` (running), then
+      `ie_base_m2m` (base-scale many-to-many vs the one-to-many `ie_base`, a
+      controlled test of whether many-to-many helps; config committed)
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David
