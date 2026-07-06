@@ -18,8 +18,11 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
 - **Next action**: bring many-to-many forward, and/or scale to transformer-big
   on the A100 (see spec.md "Roadmap to stronger results"); wire up ClearML for
   the H100s.
-- **Blocked on David**: ClearML queue name and a git remote the agents can
-  clone; choice of the next run; whether to make the published repo public.
+- **ClearML**: connected. Authenticated to `api.sil.hosted.allegro.ai`; queue
+  `jobs_backlog` exists with 8 GPU workers listening (`aqua-gpu-dallas:gpu0-7`).
+- **Blocked on David**: a git remote the agents can clone (e.g. a GitHub repo)
+  so `samileides.train` can be packaged as a ClearML task; choice of the next
+  run; whether to make the published repo public.
 - Nothing is running in the background right now.
 
 ## Active - next up
@@ -28,8 +31,8 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
       (K default 4); source + target tags. Highest-impact next step.
 - [ ] Scale to transformer-big (~210M) on the A100 (80 GB); large batch, longer
       schedule.
-- [ ] Wire up ClearML for the H100s: package `samileides.train` as a task once
-      the queue name and git remote are available.
+- [ ] Package `samileides.train` as a ClearML task on queue `jobs_backlog`
+      (access confirmed; needs a git remote for the agents to clone the code).
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David
