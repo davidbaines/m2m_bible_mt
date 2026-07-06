@@ -180,5 +180,4 @@ Hub.
 ## Acknowledgement
 
 This project reproduces the closed text Bible translation experiment described
-by Sami Liedes. It is independent work and is not endorsed by him. His name is
-not used in the naming of published models.
+by Sami Liedes.
