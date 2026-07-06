@@ -3,6 +3,23 @@
 Working list for the Liedes reproduction. Consult `spec.md` before every
 change; tick tasks `[x]` as they are completed.
 
+## Current status (2026-07-06)
+
+- **Done**: repo and data foundations; the full pipeline end to end (selection,
+  splits, composite Greek source, preprocessing, tokeniser, training,
+  generation, evaluation); the single-family Indo-European research run
+  `ie_base` (held-out OT chrF3 40.7 English / 40.5 German / 38.1 Hindi); its
+  licence-clean twin `ie_base_shareable`; and the Hugging Face publishing
+  pipeline with quality and licence gates.
+- **Live on the Hub**: `DavidCBaines/ebible_m2m-ie-base-shareable` (private,
+  `cc-by-sa-4.0`), verified loadable with `from_pretrained`.
+- **Next action**: bring many-to-many forward, and/or scale to transformer-big
+  on the A100 (see spec.md "Roadmap to stronger results"); wire up ClearML for
+  the H100s.
+- **Blocked on David**: ClearML queue name and a git remote the agents can
+  clone; choice of the next run; whether to make the published repo public.
+- Nothing is running in the background right now.
+
 ## Phase 0 - repo and data foundations
 
 - [x] git init; uv project (`pyproject.toml`, Python ≥ 3.11); `src/samileides/`
@@ -158,8 +175,9 @@ Gated sharing of successful models (spec.md, "Publishing"). Agreed with David
 - [x] HF authentication on this box (`hf auth login`, DavidCBaines, write)
 - [x] First real publish through the gate → `DavidCBaines/ebible_m2m-ie-base-shareable`
       (private), verified on the Hub and loadable via `from_pretrained`
+- [x] Best-other-language baseline (`evaluate.best_reference_baseline`,
+      `samileides.rescore`); the publish gate and model card both use it
 - [ ] Make the repo public when David is satisfied with the review
-- [ ] Stronger baseline added: rescore + card show best-other-language floor
 
 ## Phase 8 — report and publish
 

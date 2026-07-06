@@ -243,14 +243,70 @@ If family-restriction helps, later phases can test *other* single families
 (e.g. an all-Bantu or all-Austronesian run) and family-vs-diverse at H100
 scale.
 
+## Roadmap to stronger results
+
+The `ie_base` scores (chrF3 in the high 30s to low 40s for a whole held-out OT)
+confirm the effect but sit below what larger, better-resourced systems reach.
+Priorities agreed 2026-07-06, in expected order of impact:
+
+1. **Many-to-many** (bring phase 4 forward). Pair each target verse with K
+   sampled source languages per epoch instead of Greek alone. This is the
+   biggest structural gain: the model sees each verse from many angles and gets
+   several times the effective training signal.
+2. **Scale up** to transformer-big (~210M) on the A100 (80 GB), with a large
+   batch and a longer schedule.
+3. **Broader data**: hundreds of translations, keeping a held-out language's
+   close relatives while adding wide multilingual coverage.
+4. **Multi-source inference ensembling**: at generation, translate a held-out
+   verse from several source languages and combine or rerank. Exploits the
+   closed-text redundancy that open-text systems lack.
+5. **Iterative backtranslation**: feed the model's own drafts back as synthetic
+   training data.
+6. **Pretrained fine-tune track (phase 7), reported separately.** Fine-tune a
+   strong multilingual model (e.g. NLLB-200 at 1.3B) on the A100 for the best
+   absolute drafting quality. This brings outside knowledge, so it is a
+   different experiment, kept apart from the from-scratch results.
+
+## Baselines and evaluation notes
+
+Two baselines are reported per held-out book (spec verification #6):
+
+- **source-copy**: the untagged Greek source verse. Near zero, because the
+  source is in a different script; a floor against degenerate output only.
+- **best other-language reference**: chrF3 of the single most similar training
+  language's own text for the same verses. A far stronger floor, since a close
+  relative shares script and vocabulary. `samileides.generate` computes it for
+  new runs; `samileides.rescore` adds it to runs generated before it existed.
+
+The publish quality gate requires beating source-copy on every book **and**
+beating the other-language baseline per language on a verse-weighted average.
+
 ## Infrastructure
 
-- **Dev**: this repo, developed on Windows; data prep and analysis must run on
-  Windows and Linux; training targets Linux (local 3090 for smoke runs,
-  remote H100s for real runs).
-- **Jobs and tracking**: ClearML for both scheduling and experiment tracking
-  (scalars, configs, artefacts); the remote H100s are already ClearML-managed.
-  File transfer via the existing rclone + WireGuard setup.
+Compute available (updated 2026-07-06):
+
+- **Local Linux 3090 (24 GB)**: the primary development box. Runs the test
+  suite, data prep, smoke tests, and, in practice, full substantial runs at
+  transformer-base scale (the `ie_base` and `ie_base_shareable` runs each
+  trained 60k steps in ~2.1 h here). Setup notes in
+  `experiments/dev-3090-setup.md`. Note: `uv` is installed at
+  `~/.local/bin/uv` and invoked by absolute path (a VS Code snap sandbox put
+  the installer's PATH entry out of reach).
+- **A100 (80 GB), research**: headroom for transformer-big from-scratch runs
+  and for fine-tuning a pretrained model (e.g. NLLB-200). Not yet wired in.
+- **Remote H100s (40 GB) via ClearML**: for scheduled real runs; ClearML is
+  also the experiment tracker (scalars, configs, artefacts). Access is being
+  set up (credentials, queue name, and a git remote the agents can clone are
+  the outstanding pieces). File transfer via the existing rclone + WireGuard
+  setup.
+
+The original single-H100-40 GB constraint in `project-brief.md` is superseded
+by this wider pool; the ~12 h per-full-run cap remains the working guideline
+for H100 runs.
+
+Data prep and analysis run on both Windows and Linux; earlier development was
+on Windows, current development is on the Linux 3090.
+
 - **Publishing**: trained checkpoints, tokenisers, generated books and sample
   sheets pushed to the Hugging Face Hub under David's account; the written
   report lives in this repo. Full policy in "Publishing" below.
@@ -278,9 +334,11 @@ agreed with David on 2026-07-06:
   `cc-by-4.0` (any `by`) or `cc0-1.0` (all public domain). The model card lists
   every source translation and its licence.
 - **Repository layout**: one repository per run under `DavidCBaines`, named
-  `ebible_m2m-<experiment>` (e.g. `ebible_m2m-ie-base`). Public by default,
-  since only redistributable data reaches a published model. The best models
-  may later be mirrored to the `bible-nlp` organisation. Liedes' name is not
+  `ebible_m2m-<experiment>` (e.g. `ebible_m2m-ie-base`). The command can push
+  public or `--private`; only redistributable data reaches a published model,
+  so public is safe, but in practice the first upload of a run goes private for
+  review and is made public once checked. The best models may later be mirrored
+  to the `bible-nlp` organisation. Liedes' name is not
   used in any repository name.
 - **Loadability**: the raw SentencePiece model is packaged as a
   `MarianTokenizer`, so `MarianMTModel.from_pretrained` plus
@@ -347,3 +405,41 @@ How each piece is proven to work before it is relied on:
    tokeniser round-trips and the staged repository loads with `from_pretrained`.
    A `--dry-run` builds the full repository (card, tokeniser, artefacts) without
    pushing, for inspection before any upload.
+
+## Decisions log
+
+Dated record of choices made in planning, so a later reader (or a restarted
+session) does not relitigate them. The rationale for each lives in the relevant
+section above.
+
+- **2026-07-05**: architecture, staged data, one-to-many-first, holdout design,
+  tokeniser order, evaluation metrics, infra (the "Settled decisions" in
+  `project-brief.md`).
+- **2026-07-06, single-family experiment**: run an Indo-European-only,
+  one-to-many experiment on the 3090; whole OT withheld from English, German
+  and Hindi (approved for this run); transformer-base scale.
+- **2026-07-06, publishing policy**: publish under `DavidCBaines`, one repo per
+  run named `ebible_m2m-<experiment>`; Liedes' name not used in repo names.
+  Quality gate = beat source-copy per book and the other-language baseline per
+  language; licence gate = train only on derivative-permitting licences
+  (Public Domain / by / by-sa), ShareAlike propagating to the model licence.
+  Fully `from_pretrained`-loadable. The best models may later be mirrored to the
+  `bible-nlp` organisation.
+- **2026-07-06, first publish**: `ie_base_shareable` published **private** first
+  (`DavidCBaines/ebible_m2m-ie-base-shareable`) for review before going public,
+  even though only redistributable data is included.
+- **2026-07-06, roadmap**: prioritise many-to-many, then transformer-big on the
+  A100, with the NLLB fine-tune as a separate track (see "Roadmap" above).
+
+## Maintaining these documents
+
+`spec.md` is the stable "why and what"; `todo.md` (with its "Current status"
+block) is the living "where we are". Lightweight routine, at the end of each
+working session:
+
+1. Update the "Current status" block in `todo.md` (done, running, next, blocked).
+2. Tick completed tasks; add newly discovered ones.
+3. Record any new decision in the Decisions log above.
+4. Drop run results into `experiments/` and link them from `todo.md`.
+
+Keep it brief; the point is restartability, not ceremony.
