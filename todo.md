@@ -152,9 +152,14 @@ Gated sharing of successful models (spec.md, "Publishing"). Agreed with David
       (32 languages, all shareable, model licence `cc-by-sa-4.0`), +test
 - [x] Publishable experiment ready: `configs/experiments/ie_base_shareable.yaml`
       + `configs/holdouts-ie-shareable.yaml` (same design as ie_base, licence-clean)
-- [~] Train `ie_base_shareable` (licence-clean, 32 languages) — training now
-- [ ] Generate + score `ie_base_shareable`, then first real publish through the gate
-- [ ] HF authentication on this box (`hf auth login`) before the first push
+- [x] Train `ie_base_shareable` (licence-clean, 32 languages), eval_loss 2.99
+- [x] Generate + score `ie_base_shareable`: chrF3 41.0 (eng), 38.7 (hin),
+      32.7 (deu, archaic Public Domain `deutkw`); all beat both baselines
+- [x] HF authentication on this box (`hf auth login`, DavidCBaines, write)
+- [x] First real publish through the gate → `DavidCBaines/ebible_m2m-ie-base-shareable`
+      (private), verified on the Hub and loadable via `from_pretrained`
+- [ ] Make the repo public when David is satisfied with the review
+- [ ] Stronger baseline added: rescore + card show best-other-language floor
 
 ## Phase 8 — report and publish
 
