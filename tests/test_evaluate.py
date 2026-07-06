@@ -31,6 +31,28 @@ def test_length_mismatch_raises():
         score(REFS[:2], REFS)
 
 
+def test_best_reference_baseline_picks_closest():
+    from samileides.evaluate import best_reference_baseline
+
+    candidates = {
+        "unrelated": ["zzz qqq xxx", "vvv www yyy", "rrr sss ttt"],
+        "close": [
+            "In the beginning God made the heavens and the earth.",
+            "Now the earth was formless and empty.",
+            "And God said, Let there be light, and there was light.",
+        ],
+    }
+    lang, chrf = best_reference_baseline(REFS, candidates)
+    assert lang == "close"
+    assert chrf > 50.0
+
+
+def test_best_reference_baseline_empty():
+    from samileides.evaluate import best_reference_baseline
+
+    assert best_reference_baseline(REFS, {}) == ("", 0.0)
+
+
 @pytest.mark.integration
 def test_full_metric_set_including_spbleu():
     results = score(REFS, REFS)

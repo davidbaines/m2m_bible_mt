@@ -26,7 +26,7 @@ from .canon import book_of
 from .config import ExperimentConfig
 from .data import VREF_COLUMN
 from .data_pipeline import prepare
-from .evaluate import score, trivial_baselines
+from .evaluate import best_reference_baseline, score, trivial_baselines
 from .greek import build_composite_source
 from .preprocess import SRC_COLUMN, TGT_COLUMN, normalise, target_tag
 from .sheets import make_sheet
@@ -107,26 +107,18 @@ def generate_holdouts(run_dir: Path, out_dir: Path, args) -> pd.DataFrame:
                 max_length=max_length, batch_size=args.batch_size,
             )
             refs = book_pairs[TGT_COLUMN].tolist()
-            # source-copy baseline uses the untagged source verse
-            src_plain = [s.split(" ", 1)[1] if " " in s else s
-                         for s in book_pairs[SRC_COLUMN]]
-
-            metrics = score(hyps, refs)
-            baseline = trivial_baselines(src_plain, refs)["source-copy"]
-
-            lang = data.language_of.get(translation, translation)
             vrefs = book_pairs[VREF_COLUMN].tolist()
+            lang = data.language_of.get(translation, translation)
             _write_book(out_dir, translation, book, vrefs, hyps)
             _write_sheet(out_dir, translation, book, lang, vrefs, hyps, refs)
 
-            row = {
-                "translation": translation, "language": lang, "book": book,
-                "verses": len(book_pairs), "truncated": truncated,
-                **metrics,
-                **{f"copy_{k}": v for k, v in baseline.items()},
-            }
+            row = score_book(
+                translation=translation, book=book, vrefs=vrefs, hyps=hyps,
+                data=data, truncated=truncated,
+            )
             rows.append(row)
-            print(f"  chrF3={metrics['chrF3']} (copy={baseline['chrF3']}) "
+            print(f"  chrF3={row['chrF3']} (copy={row['copy_chrF3']}, "
+                  f"other={row['other_chrF3']} [{row['other_lang']}]) "
                   f"truncated={truncated}")
 
     table = pd.DataFrame(rows)
@@ -136,6 +128,55 @@ def generate_holdouts(run_dir: Path, out_dir: Path, args) -> pd.DataFrame:
             table.to_markdown(index=False), encoding="utf-8"
         )
     return table
+
+
+def other_language_candidates(vrefs, verses, translation, language_of):
+    """Text of every other selected translation for these verses.
+
+    Returns {language: [normalised text per vref]}, the pool for the
+    best-other-language baseline. Missing verses become empty strings.
+    """
+    from .preprocess import normalise
+
+    candidates = {}
+    for other in verses.columns:
+        if other == translation:
+            continue
+        texts = [
+            normalise(str(verses.at[v, other])) if v in verses.index else ""
+            for v in vrefs
+        ]
+        candidates[language_of.get(other, other)] = texts
+    return candidates
+
+
+def score_book(*, translation, book, vrefs, hyps, data, truncated):
+    """Score one generated book against the reference and both baselines."""
+    sub = data.test_pairs[
+        (data.test_pairs["translation"] == translation)
+        & (data.test_pairs[VREF_COLUMN].isin(vrefs))
+    ].set_index(VREF_COLUMN)
+    refs = [sub.at[v, TGT_COLUMN] for v in vrefs]
+    src_plain = [
+        (sub.at[v, SRC_COLUMN].split(" ", 1)[1] if " " in sub.at[v, SRC_COLUMN]
+         else sub.at[v, SRC_COLUMN])
+        for v in vrefs
+    ]
+    metrics = score(hyps, refs)
+    copy = trivial_baselines(src_plain, refs)["source-copy"]
+    candidates = other_language_candidates(vrefs, data.verses, translation, data.language_of)
+    other_lang, other_chrf = best_reference_baseline(refs, candidates)
+    return {
+        "translation": translation,
+        "language": data.language_of.get(translation, translation),
+        "book": book,
+        "verses": len(vrefs),
+        "truncated": truncated,
+        **metrics,
+        **{f"copy_{k}": v for k, v in copy.items()},
+        "other_chrF3": other_chrf,
+        "other_lang": other_lang,
+    }
 
 
 def _write_book(out_dir, translation, book, vrefs, hyps):

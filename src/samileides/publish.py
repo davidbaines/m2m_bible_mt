@@ -49,10 +49,28 @@ def git_commit() -> str:
 
 
 def check_gate(metrics: pd.DataFrame) -> tuple[bool, pd.DataFrame]:
-    """Every held out book must beat the source copy baseline on chrF3."""
+    """Quality gate on the generated held-out books.
+
+    Two conditions must hold. Every book must beat the source-copy baseline on
+    chrF3 (a floor against degenerate output). And, where the stronger
+    other-language baseline is recorded, each held-out language must beat it on
+    a verse-weighted average (a real bar, checked per language rather than per
+    book so an occasional near-tie on a single book does not block a model that
+    is clearly better overall).
+    """
     verdict = metrics.copy()
     verdict["beats_baseline"] = verdict["chrF3"] > verdict["copy_chrF3"]
-    return bool(verdict["beats_baseline"].all()), verdict
+    passed = bool(verdict["beats_baseline"].all())
+
+    if "other_chrF3" in verdict.columns:
+        import numpy as np
+
+        for _, g in verdict.groupby("translation"):
+            model = np.average(g["chrF3"], weights=g["verses"])
+            other = np.average(g["other_chrF3"], weights=g["verses"])
+            if model <= other:
+                passed = False
+    return passed, verdict
 
 
 def _copy_model_files(run: Path, staging: Path) -> None:
@@ -151,9 +169,13 @@ def run(args) -> None:
     print(f"  languages  : {len(info['languages'])}")
     print(f"  holdouts   : {', '.join(info['holdouts'])}")
     print(f"  staging    : {staging}")
-    print("  chrF3 vs source-copy:")
-    for _, r in info["metrics"].iterrows():
-        print(f"    {r['translation']}/{r['book']}: {r['chrF3']} (copy {r['copy_chrF3']})")
+    import numpy as np
+
+    print("  chrF3 by language (model vs baselines):")
+    for t, g in info["metrics"].groupby("translation"):
+        w = lambda c: round(np.average(g[c], weights=g["verses"]), 2)
+        other = f", other-lang {w('other_chrF3')}" if "other_chrF3" in g else ""
+        print(f"    {t}: model {w('chrF3')} (source-copy {w('copy_chrF3')}{other})")
 
     if args.dry_run:
         print("\nDry run: staging built, nothing pushed.")

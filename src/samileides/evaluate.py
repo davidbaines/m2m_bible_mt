@@ -44,3 +44,24 @@ def trivial_baselines(
     ``source-copy``: emit the (untagged) source verse unchanged.
     """
     return {"source-copy": score(sources, references)}
+
+
+def best_reference_baseline(
+    references: Sequence[str], candidates: dict[str, Sequence[str]]
+) -> tuple[str, float]:
+    """Strongest "copy another language" baseline (spec.md verification #6).
+
+    ``candidates`` maps a language label to that language's text for the same
+    verses, aligned to ``references``. Returns the label and chrF3 of the
+    best-scoring candidate. This is a far more demanding floor than source-copy,
+    because a close relative shares script and vocabulary with the target.
+    Returns ("", 0.0) if there are no candidates.
+    """
+    chrf = CHRF(char_order=6, word_order=0, beta=3)
+    refs = [list(references)]
+    best_lang, best_score = "", 0.0
+    for lang, texts in candidates.items():
+        s = chrf.corpus_score(list(texts), refs).score
+        if s > best_score:
+            best_lang, best_score = lang, s
+    return best_lang, round(best_score, 2)

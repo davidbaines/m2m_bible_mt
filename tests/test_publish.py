@@ -18,6 +18,7 @@ def test_default_repo_id():
 
 def test_gate_passes_when_all_beat_baseline():
     m = pd.DataFrame({"translation": ["a", "b"], "book": ["OT", "OT"],
+                      "verses": [100, 100],
                       "chrF3": [20.0, 15.0], "copy_chrF3": [1.0, 2.0]})
     ok, verdict = check_gate(m)
     assert ok
@@ -26,10 +27,33 @@ def test_gate_passes_when_all_beat_baseline():
 
 def test_gate_fails_when_one_loses_to_baseline():
     m = pd.DataFrame({"translation": ["a", "b"], "book": ["OT", "OT"],
+                      "verses": [100, 100],
                       "chrF3": [20.0, 1.5], "copy_chrF3": [1.0, 2.0]})
     ok, verdict = check_gate(m)
     assert not ok
     assert not verdict["beats_baseline"].all()
+
+
+def test_gate_fails_when_language_loses_to_other_language_baseline():
+    # model beats source-copy everywhere, but loses to a relative on average
+    m = pd.DataFrame({
+        "translation": ["a", "a"], "book": ["GEN", "EXO"], "verses": [100, 100],
+        "chrF3": [20.0, 22.0], "copy_chrF3": [1.0, 1.0],
+        "other_chrF3": [25.0, 24.0],
+    })
+    ok, _ = check_gate(m)
+    assert not ok
+
+
+def test_gate_passes_over_other_language_in_aggregate():
+    # loses on one book but wins the verse-weighted language average
+    m = pd.DataFrame({
+        "translation": ["a", "a"], "book": ["GEN", "EXO"], "verses": [50, 150],
+        "chrF3": [24.0, 40.0], "copy_chrF3": [1.0, 1.0],
+        "other_chrF3": [25.0, 20.0],
+    })
+    ok, _ = check_gate(m)
+    assert ok
 
 
 def test_package_tokenizer_roundtrips(tmp_path):
