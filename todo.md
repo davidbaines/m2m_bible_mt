@@ -28,8 +28,11 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
   Greek source, which many-to-many trains on far less. Not a fair test of m2m's
   real strength (generating from a relative). See
   `experiments/ie-base-m2m-results.md`.
-- **NLLB many-to-one series** (15 runs) built and smoke-verified but **paused**
-  after 1 run to sort out alignment scoring first. Ready to resume.
+- **NLLB many-to-one series**: now has generation-based early stopping (chrF3 on
+  a fixed 250-verse NT validation set every 1000 steps, best model kept). Two
+  bracketing runs are training now (Tongan-relative = easy, Romani-scratch =
+  hard, max 20k steps, patience 5) to measure convergence and per-run time
+  before committing the full matrix.
 - **Alignment factor** done: eflomal (uv-managed-Python build) vs in-repo IBM-1;
   they disagree on the closest source for 3/5 targets
   (`experiments/m2o-alignment-comparison.md`).
@@ -71,8 +74,12 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
       source for 3/5 targets, agreeing on same-script Latin cases and inverting
       on cross-script ones (`experiments/m2o-alignment-comparison.md`). Notable:
       for Male, eflomal ranks Oromo above same-script Amharic.
-- [ ] Resume the NLLB many-to-one matrix (paused after 1 run); the downstream
-      results will show which aligner's "closest source" predicts transfer
+- [x] Generation-based early stopping for the m2o runs (fixed 250-verse NT
+      validation set, chrF3 every 1000 steps, best model kept) — default method
+- [~] Two bracketing runs (Tongan-relative, Romani-scratch, max 20k, patience 5)
+      to measure convergence + per-run time before the full matrix
+- [ ] Set the matrix step budget from the bracketing timings, then run the
+      full 15-run matrix with early stopping
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David
