@@ -54,4 +54,33 @@ here.
   multi-source training should actually help, so they are a better-matched use
   of the idea.
 
+## Follow-up probe: does many-to-many generate better from a relative?
+
+Using the trained `ie_base_m2m` model (no new training), English Genesis was
+generated from different sources and scored against the English reference:
+
+| Model / source | chrF3 (English Genesis) |
+|---|---|
+| one-to-many, from Greek | 45.9 |
+| many-to-many, from Greek | 37.3 |
+| many-to-many, from Spanish (relative) | 41.9 |
+| many-to-many, from Dutch (Germanic sibling) | 39.5 |
+
+Two things follow. First, the fairness point holds: the many-to-many model does
+generate markedly better from a relative (Spanish 41.9, Dutch 39.5) than from
+Greek (37.3), so it did learn relative-sourced translation, which the
+Greek-only evaluation hid. Second, and more sobering: even from its best
+relative, many-to-many (41.9) still trails one-to-many from Greek (45.9) at
+equal compute. So at this scale and budget, spreading capacity across many
+source directions costs more than it gains, even measured on many-to-many's
+home turf.
+
+The practical value of many-to-many is therefore **flexibility, not peak
+quality at equal compute**: it can draft from whatever source language happens
+to be available, whereas the one-to-many model only works from Greek. That
+flexibility is exactly what the pretrained many-to-one experiments exercise
+(drafting a new language from its relatives). Whether many-to-many can also
+match or beat one-to-many on quality is an open question that needs more
+compute or pivot-source oversampling to answer, not something to assume.
+
 Artefacts: `checkpoints/ie_base_m2m/generated/`.
