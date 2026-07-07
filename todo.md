@@ -23,7 +23,11 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
   pivot) drafted held-out OTs at chrF3 52.8 German / 51.1 English / 42.7 Hindi,
   above from-scratch `ie_base` (40.5/40.7/38.1) but on an easier task; see
   `experiments/nllb-ie-results.md`.
-- **ie_base_m2m** (many-to-many vs one-to-many, base scale) running on the 3090.
+- **ie_base_m2m** done: many-to-many scored *below* one-to-many by ~8-10 chrF3
+  (31.9/32.6/28.3 vs 40.7/40.5/38.1), because both were evaluated from the fixed
+  Greek source, which many-to-many trains on far less. Not a fair test of m2m's
+  real strength (generating from a relative). See
+  `experiments/ie-base-m2m-results.md`.
 - **ClearML**: connected (queue `jobs_backlog`, 8 workers). Remote launch code
   is in place (`train --remote-queue`, artifact upload, `samileides.fetch`) and
   the git remote (`github.com/davidbaines/m2m_bible_mt`, public) works, but the
@@ -49,8 +53,11 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
       (needs a committed transformer-big m2m config sized for the remote GPU)
 - [x] Local 3090, NLLB-600M IE many-to-many fine-tune (`nllb_ie`) → strong
       draft quality; `experiments/nllb-ie-results.md`
-- [~] Local 3090, `ie_base_m2m` (base-scale many-to-many vs one-to-many
-      `ie_base`) running; controlled test of whether many-to-many helps
+- [x] Local 3090, `ie_base_m2m` (base-scale many-to-many vs one-to-many): m2m
+      scored below o2m at equal compute when evaluated from Greek; the fixed
+      source dilution explains it. `experiments/ie-base-m2m-results.md`
+- [ ] Fairer m2m test before any big run: evaluate from relatives and/or
+      oversample the pivot source and/or give m2m more steps
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David

@@ -250,9 +250,14 @@ confirm the effect but sit below what larger, better-resourced systems reach.
 Priorities agreed 2026-07-06, in expected order of impact:
 
 1. **Many-to-many** (bring phase 4 forward). Pair each target verse with K
-   sampled source languages per epoch instead of Greek alone. This is the
-   biggest structural gain: the model sees each verse from many angles and gets
-   several times the effective training signal.
+   sampled source languages per epoch instead of Greek alone. NOTE (2026-07-07):
+   the base-scale test `ie_base_m2m` scored *below* one-to-many when both were
+   evaluated from the fixed Greek source, because many-to-many trains on
+   Greek->target far less often at equal compute (see
+   `experiments/ie-base-m2m-results.md`). Before a large run, make the test fair
+   to the method: evaluate from the held-out language's relatives, oversample
+   the pivot source, and/or increase the step budget. Do not assume it is a free
+   win at fixed compute with single-source evaluation.
 2. **Scale up** to transformer-big (~210M) on the A100 (80 GB), with a large
    batch and a longer schedule.
 3. **Broader data**: hundreds of translations, keeping a held-out language's
