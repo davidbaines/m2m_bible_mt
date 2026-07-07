@@ -19,9 +19,11 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
   `jobs_backlog`, once the ClearML agent env is fixed (below).
 - **Many-to-many sampler**: built and verified on the 3090
   (`samileides.manytomany`, smoke_m2m).
-- **NLLB fine-tune**: pipeline built (`samileides.train_nllb`, `samileides.nllb`);
-  smoke drafted held-out Jonah at chrF3 46 after 150 steps. `nllb_ie` (600M,
-  IE many-to-many) running on the 3090 now.
+- **NLLB fine-tune**: done. `nllb_ie` (600M, IE many-to-many, from a Spanish
+  pivot) drafted held-out OTs at chrF3 52.8 German / 51.1 English / 42.7 Hindi,
+  above from-scratch `ie_base` (40.5/40.7/38.1) but on an easier task; see
+  `experiments/nllb-ie-results.md`.
+- **ie_base_m2m** (many-to-many vs one-to-many, base scale) running on the 3090.
 - **ClearML**: connected (queue `jobs_backlog`, 8 workers). Remote launch code
   is in place (`train --remote-queue`, artifact upload, `samileides.fetch`) and
   the git remote (`github.com/davidbaines/m2m_bible_mt`, public) works, but the
@@ -45,9 +47,10 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
 - [ ] Re-run the plumbing test (smoke on `jobs_backlog`) once SIL fixes the agent
 - [ ] Flagship run: transformer-big (~210M) many-to-many on `jobs_backlog`
       (needs a committed transformer-big m2m config sized for the remote GPU)
-- [ ] Local 3090 while ClearML is down (queued): `nllb_ie` (running), then
-      `ie_base_m2m` (base-scale many-to-many vs the one-to-many `ie_base`, a
-      controlled test of whether many-to-many helps; config committed)
+- [x] Local 3090, NLLB-600M IE many-to-many fine-tune (`nllb_ie`) → strong
+      draft quality; `experiments/nllb-ie-results.md`
+- [~] Local 3090, `ie_base_m2m` (base-scale many-to-many vs one-to-many
+      `ie_base`) running; controlled test of whether many-to-many helps
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David
@@ -72,9 +75,9 @@ these as a backlog to pull from.
 - **Tokeniser variants**: unigram, then byte-level, on the best config so far.
 - **English-source variant**: one-to-many from `engbsb` (English leaves the
   holdout set); evaluate remaining holdouts.
-- **Pretrained comparison**: NLLB-200-600M fine-tune pipeline built
-  (`samileides.train_nllb`); a modest IE many-to-many run is underway on the
-  3090. Report separately (spec.md "Roadmap", track 6).
+- **Pretrained comparison**: NLLB-200-600M fine-tune done for a modest IE
+  many-to-many run (`experiments/nllb-ie-results.md`); strong draft quality.
+  Follow-ups: fair-source comparison and a longer fine-tune (spec.md track 6).
 - **Other single families**: an all-Bantu or all-Austronesian run, and
   family-versus-diverse at H100 scale.
 - **Pilot (superseded)**: `configs/experiments/pilot.yaml` (transformer-big, 50

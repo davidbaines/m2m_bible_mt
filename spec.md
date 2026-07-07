@@ -436,7 +436,11 @@ section above.
   (`samileides.manytomany`); (b) a modest NLLB-200-600M many-to-many fine-tune
   (`samileides.train_nllb`, `configs/experiments/nllb_ie.yaml`), generating the
   held-out OTs from a Spanish pivot since NLLB has no Koine Greek. NLLB smoke on
-  3 languages drafted held-out Jonah at chrF3 46 after only 150 steps.
+  3 languages drafted held-out Jonah at chrF3 46 after only 150 steps. The full
+  `nllb_ie` run scored chrF3 52.8/51.1/42.7 (deu/eng/hin), above from-scratch
+  `ie_base` (40.5/40.7/38.1) but on an easier task (Spanish source, outside
+  knowledge); write-up in `experiments/nllb-ie-results.md`. Also queued:
+  `ie_base_m2m`, a controlled many-to-many-vs-one-to-many test at base scale.
 
 ## Maintaining these documents
 
