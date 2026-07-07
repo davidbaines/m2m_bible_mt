@@ -1,0 +1,12 @@
+name: m2o_ton
+pretrained: facebook/nllb-200-distilled-600M
+target: {code: ton, tid: ton, new_token: ton_Latn, script: Latn}
+relative: mri_Latn
+script_anchor: eng_Latn
+sources:
+  - {code: mri, tid: mri2012, flores: mri_Latn}
+  - {code: ind, tid: indayt, flores: ind_Latn}
+  - {code: ceb, tid: cebulb, flores: ceb_Latn}
+  - {code: tgl, tid: tglulb, flores: tgl_Latn}
+training: {lr: 3.0e-5, steps: 1500, warmup: 100, batch: 16, grad_accum: 1, gradient_checkpointing: true, max_len: 128}
+generate: {books: [RUT, JON], chapters: ["GEN 1:"], beam: 5, max_length: 128}

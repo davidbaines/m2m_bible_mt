@@ -1,0 +1,12 @@
+name: m2o_rmc
+pretrained: facebook/nllb-200-distilled-600M
+target: {code: rmc, tid: rmc, new_token: rmc_Latn, script: Latn}
+relative: hin_Deva
+script_anchor: eng_Latn
+sources:
+  - {code: hin, tid: hin2017, flores: hin_Deva}
+  - {code: mar, tid: mar, flores: mar_Deva}
+  - {code: guj, tid: guj2017, flores: guj_Gujr}
+  - {code: asm, tid: asmfb, flores: asm_Beng}
+training: {lr: 3.0e-5, steps: 1500, warmup: 100, batch: 16, grad_accum: 1, gradient_checkpointing: true, max_len: 128}
+generate: {books: [RUT, JON], chapters: ["GEN 1:"], beam: 5, max_length: 128}
