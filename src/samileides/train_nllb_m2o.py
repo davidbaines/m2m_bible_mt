@@ -29,8 +29,11 @@ INIT_FROM = {"relative": "relative", "scratch": None, "same_script": "script_anc
 
 
 def run(args) -> None:
-    from transformers import (AutoModelForSeq2SeqLM, AutoTokenizer,
+    import numpy as np
+    from transformers import (AutoModelForSeq2SeqLM, AutoTokenizer, EarlyStoppingCallback,
                               Seq2SeqTrainer, Seq2SeqTrainingArguments)
+
+    from .nllb_m2o import build_valid_pairs
 
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -61,25 +64,57 @@ def run(args) -> None:
             target_token = target_token + "_new"
         tgt_id = add_target_token(tok, model, target_token, init_from)
 
-    pairs = build_m2o_pairs(tgt["tid"], sources, verses, target_token)
-    ds = NllbDataset(pairs, tok, cfg["training"].get("max_len", 128))
+    # generation must force the target token first (used by eval + test generation)
+    model.generation_config.forced_bos_token_id = tgt_id
+
+    # fixed 250-verse NT validation set, shared across all experiments
+    val_vrefs = [l.strip() for l in Path(args.valid_vrefs).read_text().splitlines() if l.strip()]
+    train_pairs = build_m2o_pairs(tgt["tid"], sources, verses, target_token, exclude_vrefs=val_vrefs)
+    val_pairs = build_valid_pairs(tgt["tid"], sources, verses, target_token, val_vrefs)
+    ml = cfg["training"].get("max_len", 128)
+    ds = NllbDataset(train_pairs, tok, ml)
+    val_ds = NllbDataset(val_pairs, tok, ml)
     collator = Collator(pad_id=tok.pad_token_id, decoder_start_id=tok.eos_token_id)
-    print(f"{cfg['name']} init={args.init}: {len(pairs)} NT pairs, target token {target_token!r}, "
+    print(f"{cfg['name']} init={args.init}: {len(train_pairs)} NT train pairs, "
+          f"{len(val_pairs)} val verses, target token {target_token!r}, "
           f"same-script sources {same_script}/{len(sources)}")
+
+    def compute_metrics(eval_pred):
+        preds, labels = eval_pred
+        if isinstance(preds, tuple):
+            preds = preds[0]
+        preds = np.where(preds != -100, preds, tok.pad_token_id)
+        labels = np.where(labels != -100, labels, tok.pad_token_id)
+        hyps = tok.batch_decode(preds, skip_special_tokens=True)
+        refs = tok.batch_decode(labels, skip_special_tokens=True)
+        return {"chrf3": score(hyps, refs)["chrF3"]}
 
     tr = cfg["training"]
     out = Path(args.tmp_dir) / f"{cfg['name']}_{args.init}"
     targs = Seq2SeqTrainingArguments(
-        output_dir=str(out), max_steps=args.steps or tr.get("steps", 1500),
+        output_dir=str(out), max_steps=args.steps or tr.get("steps", 20000),
         per_device_train_batch_size=tr.get("batch", 16),
+        per_device_eval_batch_size=tr.get("eval_batch", 32),
         gradient_accumulation_steps=tr.get("grad_accum", 1),
         learning_rate=float(tr.get("lr", 3e-5)), warmup_steps=tr.get("warmup", 100),
         lr_scheduler_type="inverse_sqrt", bf16=True, label_smoothing_factor=0.1,
-        logging_steps=200, save_strategy="no", report_to=[], remove_unused_columns=False,
-        dataloader_num_workers=2,
+        eval_strategy="steps", eval_steps=args.eval_steps,
+        save_strategy="steps", save_steps=args.eval_steps, save_total_limit=1,
+        load_best_model_at_end=True, metric_for_best_model="eval_chrf3", greater_is_better=True,
+        predict_with_generate=True, generation_num_beams=args.val_beam, generation_max_length=ml,
+        logging_steps=200, report_to=[], remove_unused_columns=False, dataloader_num_workers=2,
     )
-    trainer = Seq2SeqTrainer(model=model, args=targs, train_dataset=ds, data_collator=collator)
+    trainer = Seq2SeqTrainer(
+        model=model, args=targs, train_dataset=ds, eval_dataset=val_ds,
+        data_collator=collator, compute_metrics=compute_metrics,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=args.patience)],
+    )
     trainer.train()
+    curve = [(h["step"], h["eval_chrf3"]) for h in trainer.state.log_history if "eval_chrf3" in h]
+    best = max(curve, key=lambda x: x[1]) if curve else (0, 0.0)
+    print(f"VAL chrF3 curve: {curve}")
+    print(f"BEST val chrF3 {best[1]} at step {best[0]} / max {targs.max_steps}; "
+          f"runtime {trainer.state.log_history[-1].get('train_runtime','?')}s")
 
     # generate the withheld books from each source, score vs the target
     model = model.to(device).eval()
@@ -130,7 +165,11 @@ def main() -> None:
     p.add_argument("--init", required=True, choices=["relative", "scratch", "same_script", "existing"])
     p.add_argument("--results", default=str(repo_root() / "experiments" / "m2o-results.csv"))
     p.add_argument("--tmp-dir", default="/tmp/claude-1000/-home-david-Documents-Github/95a24bdc-9442-45d9-9e43-b9fb7fe88cf1/scratchpad/m2o")
-    p.add_argument("--steps", type=int, default=None, help="override training steps (smoke)")
+    p.add_argument("--steps", type=int, default=None, help="override max training steps")
+    p.add_argument("--eval-steps", type=int, default=1000, help="generate+score the val set every N steps")
+    p.add_argument("--patience", type=int, default=5, help="early-stopping patience (evals)")
+    p.add_argument("--val-beam", type=int, default=1, help="beam for the validation generation probe")
+    p.add_argument("--valid-vrefs", default=str(repo_root() / "experiments" / "m2o-valid-vrefs.txt"))
     run(p.parse_args())
 
 

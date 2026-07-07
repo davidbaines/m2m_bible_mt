@@ -41,15 +41,18 @@ def add_target_token(tokenizer, model, new_token: str, init_from: str | None) ->
     return new_id
 
 
-def build_m2o_pairs(target_tid, sources, verses, target_new_token) -> pd.DataFrame:
+def build_m2o_pairs(target_tid, sources, verses, target_new_token,
+                    exclude_vrefs=None) -> pd.DataFrame:
     """Source-NT -> target-NT pairs. ``sources`` is a list of (tid, flores).
 
     Only New-Testament verses the target has are used (whole OT withheld from
-    training). The target side is labelled with ``target_new_token`` (the new
-    or, for the control, existing NLLB token).
+    training). ``exclude_vrefs`` (the validation set) is held out of training.
+    The target side is labelled with ``target_new_token``.
     """
     nt = set(NT_BOOKS)
-    idx = [v for v in verses.index if v.split(" ", 1)[0] in nt and verses.at[v, target_tid]]
+    exclude = set(exclude_vrefs or ())
+    idx = [v for v in verses.index
+           if v.split(" ", 1)[0] in nt and verses.at[v, target_tid] and v not in exclude]
     rows = []
     for v in idx:
         tgt = normalise(verses.at[v, target_tid])
@@ -58,6 +61,27 @@ def build_m2o_pairs(target_tid, sources, verses, target_new_token) -> pd.DataFra
             if s:
                 rows.append({"src_text": normalise(s), "src_code": flores,
                              "tgt_text": tgt, "tgt_code": target_new_token})
+    return pd.DataFrame(rows, columns=["src_text", "src_code", "tgt_text", "tgt_code"])
+
+
+def build_valid_pairs(target_tid, sources, verses, target_new_token, val_vrefs) -> pd.DataFrame:
+    """One pair per validation vref, round-robin over the sources that have it.
+
+    A single balanced generation set (250 verses) used as the early-stopping
+    signal: chrF3 of the generated target against the reference, every N steps.
+    """
+    rows = []
+    k = 0
+    for v in val_vrefs:
+        if v not in verses.index or not verses.at[v, target_tid]:
+            continue
+        avail = [(tid, fl) for tid, fl in sources if verses.at[v, tid]]
+        if not avail:
+            continue
+        tid, flores = avail[k % len(avail)]
+        k += 1
+        rows.append({"src_text": normalise(verses.at[v, tid]), "src_code": flores,
+                     "tgt_text": normalise(verses.at[v, target_tid]), "tgt_code": target_new_token})
     return pd.DataFrame(rows, columns=["src_text", "src_code", "tgt_text", "tgt_code"])
 
 
