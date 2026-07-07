@@ -168,7 +168,8 @@ def main() -> None:
     p.add_argument("--steps", type=int, default=None, help="override max training steps")
     p.add_argument("--eval-steps", type=int, default=1000, help="generate+score the val set every N steps")
     p.add_argument("--patience", type=int, default=5, help="early-stopping patience (evals)")
-    p.add_argument("--val-beam", type=int, default=1, help="beam for the validation generation probe")
+    p.add_argument("--val-beam", type=int, default=5,
+                   help="beam for the validation generation probe (matches the test beam)")
     p.add_argument("--valid-vrefs", default=str(repo_root() / "experiments" / "m2o-valid-vrefs.txt"))
     run(p.parse_args())
 
