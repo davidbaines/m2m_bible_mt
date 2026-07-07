@@ -28,10 +28,11 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
   Greek source, which many-to-many trains on far less. Not a fair test of m2m's
   real strength (generating from a relative). See
   `experiments/ie-base-m2m-results.md`.
-- **NLLB many-to-one series** running on the 3090: 15 runs (Tongan, N.Ndebele,
-  Male, Romani unknown targets x 3 token-inits, plus Ilocano control x 3),
-  teaching NLLB an unseen language from same-family sources, NT-only, generating
-  withheld Ruth/Jonah/Genesis-1. Results -> `experiments/m2o-results.csv`.
+- **NLLB many-to-one series** (15 runs) built and smoke-verified but **paused**
+  after 1 run to sort out alignment scoring first. Ready to resume.
+- **Alignment factor** done: eflomal (uv-managed-Python build) vs in-repo IBM-1;
+  they disagree on the closest source for 3/5 targets
+  (`experiments/m2o-alignment-comparison.md`).
 - **ClearML**: connected (queue `jobs_backlog`, 8 workers). Remote launch code
   is in place (`train --remote-queue`, artifact upload, `samileides.fetch`) and
   the git remote (`github.com/davidbaines/m2m_bible_mt`, public) works, but the
@@ -65,8 +66,13 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
 - [~] NLLB many-to-one series (15 runs): unknown target from same-family
       sources, 3 token-init methods + control; NT-only, generate withheld
       Ruth/Jonah/Genesis-1 (`samileides.train_nllb_m2o`, running)
-- [ ] eflomal alignment scores (source-target and source-source) as a
-      source-selection factor; note same-script counts alongside
+- [x] Alignment scores as a source factor: eflomal (built via a uv-managed
+      Python) and an in-repo IBM-1, compared. The two disagree on the closest
+      source for 3/5 targets, agreeing on same-script Latin cases and inverting
+      on cross-script ones (`experiments/m2o-alignment-comparison.md`). Notable:
+      for Male, eflomal ranks Oromo above same-script Amharic.
+- [ ] Resume the NLLB many-to-one matrix (paused after 1 run); the downstream
+      results will show which aligner's "closest source" predicts transfer
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David
