@@ -90,13 +90,14 @@ def run(args) -> None:
         return {"chrf3": score(hyps, refs)["chrF3"]}
 
     tr = cfg["training"]
+    lr = args.lr if args.lr is not None else float(tr.get("lr", 3e-5))
     out = Path(args.tmp_dir) / f"{cfg['name']}_{args.init}"
     targs = Seq2SeqTrainingArguments(
         output_dir=str(out), max_steps=args.steps or tr.get("steps", 20000),
         per_device_train_batch_size=tr.get("batch", 16),
         per_device_eval_batch_size=tr.get("eval_batch", 32),
         gradient_accumulation_steps=tr.get("grad_accum", 1),
-        learning_rate=float(tr.get("lr", 3e-5)), warmup_steps=tr.get("warmup", 100),
+        learning_rate=lr, warmup_steps=tr.get("warmup", 100),
         lr_scheduler_type="inverse_sqrt", bf16=True, label_smoothing_factor=0.1,
         eval_strategy="steps", eval_steps=args.eval_steps,
         save_strategy="steps", save_steps=args.eval_steps, save_total_limit=1,
@@ -140,7 +141,7 @@ def run(args) -> None:
                 best = (s["code"], m["chrF3"], m["spBLEU"], len(idx))
         if best:
             results_rows.append({
-                "target": tgt["code"], "init": args.init, "book": book,
+                "target": tgt["code"], "init": args.init, "lr": lr, "book": book,
                 "same_script_sources": same_script, "n_sources": len(sources),
                 "best_source": best[0], "best_chrF3": best[1], "best_spBLEU": best[2],
                 "mean_chrF3": round(float(np.mean(list(per_source.values()))), 2),
@@ -167,6 +168,7 @@ def main() -> None:
     p.add_argument("--results", default=str(repo_root() / "experiments" / "m2o-results.csv"))
     p.add_argument("--tmp-dir", default="/tmp/claude-1000/-home-david-Documents-Github/95a24bdc-9442-45d9-9e43-b9fb7fe88cf1/scratchpad/m2o")
     p.add_argument("--steps", type=int, default=None, help="override max training steps")
+    p.add_argument("--lr", type=float, default=None, help="override the config learning rate")
     p.add_argument("--eval-steps", type=int, default=1000, help="generate+score the val set every N steps")
     p.add_argument("--patience", type=int, default=3, help="early-stopping patience (evals)")
     p.add_argument("--min-delta", type=float, default=0.2,

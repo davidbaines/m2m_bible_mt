@@ -1,0 +1,10 @@
+target,init,book,same_script_sources,n_sources,best_source,best_chrF3,best_spBLEU,mean_chrF3,verses,per_source
+rmc,scratch,RUT,0,4,hin,7.41,0.17,6.45,85,"{'hin': 7.41, 'mar': 6.34, 'guj': 6.34, 'asm': 5.72}"
+rmc,scratch,JON,0,4,hin,6.43,0.09,5.44,48,"{'hin': 6.43, 'mar': 4.82, 'guj': 5.46, 'asm': 5.04}"
+rmc,scratch,GEN 1:,0,4,asm,7.46,0.04,5.57,31,"{'hin': 5.63, 'mar': 4.64, 'guj': 4.56, 'asm': 7.46}"
+rmc,relative,RUT,0,4,asm,0.61,0.03,0.44,85,"{'hin': 0.32, 'mar': 0.34, 'guj': 0.51, 'asm': 0.61}"
+rmc,relative,JON,0,4,mar,0.33,0.05,0.3,48,"{'hin': 0.29, 'mar': 0.33, 'guj': 0.29, 'asm': 0.28}"
+rmc,relative,GEN 1:,0,4,asm,1.37,0.08,0.73,31,"{'hin': 0.88, 'mar': 0.36, 'guj': 0.31, 'asm': 1.37}"
+rmc,scratch,RUT,0,4,hin,7.17,0.15,6.41,85,"{'hin': 7.17, 'mar': 6.58, 'guj': 6.43, 'asm': 5.45}"
+rmc,scratch,JON,0,4,hin,6.38,0.09,5.46,48,"{'hin': 6.38, 'mar': 5.22, 'guj': 5.35, 'asm': 4.88}"
+rmc,scratch,GEN 1:,0,4,asm,7.92,0.04,5.63,31,"{'hin': 5.51, 'mar': 3.89, 'guj': 5.2, 'asm': 7.92}"

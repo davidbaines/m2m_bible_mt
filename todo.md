@@ -48,15 +48,26 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
   in the worker/container, upgrade clearml-agent, or set a working default
   docker image); choice of the next run; whether to make the published HF repo
   public.
-- **GPU DOWN (2026-07-07)**: an NVIDIA driver package upgraded mid-session
-  (userspace NVML 580.159 vs loaded kernel module 580.126.09), so CUDA fails
-  with "Driver/library version mismatch" / error 804. **Needs a reboot** (or an
-  nvidia kernel-module reload) before any GPU work resumes.
+- **GPU restored (2026-07-07)**: the reboot cleared the driver/library
+  mismatch but booted a newer kernel (6.17.0-35) with no headers installed, so
+  DKMS had no nvidia module for it. Fixed by installing
+  `linux-headers-6.17.0-35-generic` (DKMS rebuilt 580.159.03) + `modprobe
+  nvidia`. torch 2.12.1+cu130 verified on the 3090 (bf16 matmul ok).
 - Bracketing: Tongan-relative converged by ~step 1000 (val chrF3 ~21, flat),
   61 min for a wasteful 15k steps -> tightened early stopping (patience 3,
   min-delta 0.2). Romani-scratch never ran (GPU died first);
   `experiments/m2o-bracketing.md`.
-- Nothing is running in the background right now (GPU unavailable).
+- **m2o root cause found and fixed**: the Romani brackets failed flat because
+  **lr 3e-5 was too cold** for a cross-script target with a fresh token. The
+  lr re-bracket settled it: at lr 3e-4, rmc-scratch went 5.7 → 44.6 val chrF3
+  and ton-relative ~21 → 57.8 (the old Tongan number was underpowered too);
+  1e-4 is still too cold (13.2). `train_nllb_m2o` gained `--lr` and records
+  lr in results. Full story: `experiments/m2o-bracketing.md`.
+- **15-run matrix launched** (2026-07-07): ton/nde/mdy/rmc ×
+  relative/scratch/same_script + control_ilo × existing/relative/scratch, all
+  at lr 3e-4, max 8000 steps, patience 3/min-delta 0.2. ~4-6 h on the 3090.
+  Results → `experiments/m2o-matrix-results.csv` (old `m2o-results.csv` is
+  void, pre-lr-fix).
 
 ## Active - next up
 
@@ -86,11 +97,14 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
       validation set, chrF3 every 1000 steps, best model kept) — default method
 - [x] Bracketing (easy): Tongan-relative converges by ~step 1000; tightened
       early stopping (patience 3, min-delta 0.2). `experiments/m2o-bracketing.md`
-- [ ] **Reboot the box** to clear the NVIDIA driver/library mismatch
-- [ ] Re-bracket the hard case (Romani-scratch) after reboot to size the
-      scratch-init budget
-- [ ] Run the full 15-run matrix with early stopping (relative/same-script/
-      existing ~4k steps; scratch budget TBD from the re-bracket)
+- [x] Reboot the box; fix the missing DKMS build for the new kernel; GPU
+      verified working again (torch cu130, bf16)
+- [x] Re-bracket the hard case (Romani-scratch): failed flat under both inits;
+      diagnosed to a too-cold lr (3e-5 inverse-sqrt), not the init or language
+- [x] lr re-bracket (rmc scratch 3e-4/1e-4, ton relative 3e-4): lr 3e-4 wins
+      decisively; matrix budget max 8000 steps
+- [~] Full 15-run matrix at lr 3e-4 (running, ~4-6 h) →
+      `experiments/m2o-matrix-results.csv`
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David

@@ -1,0 +1,10 @@
+target,init,lr,book,same_script_sources,n_sources,best_source,best_chrF3,best_spBLEU,mean_chrF3,verses,per_source
+rmc,scratch,0.0003,RUT,0,4,guj,30.43,11.47,29.9,85,"{'hin': 30.42, 'mar': 28.69, 'guj': 30.43, 'asm': 30.06}"
+rmc,scratch,0.0003,JON,0,4,mar,33.64,16.02,32.89,48,"{'hin': 33.5, 'mar': 33.64, 'guj': 32.07, 'asm': 32.33}"
+rmc,scratch,0.0003,GEN 1:,0,4,hin,37.37,20.28,36.2,31,"{'hin': 37.37, 'mar': 34.71, 'guj': 37.3, 'asm': 35.42}"
+rmc,scratch,0.0001,RUT,0,4,hin,12.86,1.29,12.17,85,"{'hin': 12.86, 'mar': 11.69, 'guj': 11.62, 'asm': 12.52}"
+rmc,scratch,0.0001,JON,0,4,guj,12.9,1.12,12.17,48,"{'hin': 11.99, 'mar': 11.31, 'guj': 12.9, 'asm': 12.47}"
+rmc,scratch,0.0001,GEN 1:,0,4,hin,12.17,1.58,11.53,31,"{'hin': 12.17, 'mar': 11.34, 'guj': 11.44, 'asm': 11.17}"
+ton,relative,0.0003,RUT,4,4,mri,46.27,32.4,45.17,85,"{'mri': 46.27, 'ind': 44.31, 'ceb': 44.73, 'tgl': 45.38}"
+ton,relative,0.0003,JON,4,4,tgl,46.71,33.82,45.6,48,"{'mri': 45.84, 'ind': 44.84, 'ceb': 45.0, 'tgl': 46.71}"
+ton,relative,0.0003,GEN 1:,4,4,ind,48.41,33.29,47.48,31,"{'mri': 46.36, 'ind': 48.41, 'ceb': 47.75, 'tgl': 47.39}"
