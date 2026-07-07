@@ -107,7 +107,8 @@ def run(args) -> None:
     trainer = Seq2SeqTrainer(
         model=model, args=targs, train_dataset=ds, eval_dataset=val_ds,
         data_collator=collator, compute_metrics=compute_metrics,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=args.patience)],
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=args.patience,
+                                        early_stopping_threshold=args.min_delta)],
     )
     trainer.train()
     curve = [(h["step"], h["eval_chrf3"]) for h in trainer.state.log_history if "eval_chrf3" in h]
@@ -167,7 +168,9 @@ def main() -> None:
     p.add_argument("--tmp-dir", default="/tmp/claude-1000/-home-david-Documents-Github/95a24bdc-9442-45d9-9e43-b9fb7fe88cf1/scratchpad/m2o")
     p.add_argument("--steps", type=int, default=None, help="override max training steps")
     p.add_argument("--eval-steps", type=int, default=1000, help="generate+score the val set every N steps")
-    p.add_argument("--patience", type=int, default=5, help="early-stopping patience (evals)")
+    p.add_argument("--patience", type=int, default=3, help="early-stopping patience (evals)")
+    p.add_argument("--min-delta", type=float, default=0.2,
+                   help="min chrF3 gain to count as improvement (avoids noise-driven overruns)")
     p.add_argument("--val-beam", type=int, default=5,
                    help="beam for the validation generation probe (matches the test beam)")
     p.add_argument("--valid-vrefs", default=str(repo_root() / "experiments" / "m2o-valid-vrefs.txt"))

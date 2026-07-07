@@ -48,7 +48,15 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
   in the worker/container, upgrade clearml-agent, or set a working default
   docker image); choice of the next run; whether to make the published HF repo
   public.
-- Nothing is running in the background right now.
+- **GPU DOWN (2026-07-07)**: an NVIDIA driver package upgraded mid-session
+  (userspace NVML 580.159 vs loaded kernel module 580.126.09), so CUDA fails
+  with "Driver/library version mismatch" / error 804. **Needs a reboot** (or an
+  nvidia kernel-module reload) before any GPU work resumes.
+- Bracketing: Tongan-relative converged by ~step 1000 (val chrF3 ~21, flat),
+  61 min for a wasteful 15k steps -> tightened early stopping (patience 3,
+  min-delta 0.2). Romani-scratch never ran (GPU died first);
+  `experiments/m2o-bracketing.md`.
+- Nothing is running in the background right now (GPU unavailable).
 
 ## Active - next up
 
@@ -76,10 +84,13 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
       for Male, eflomal ranks Oromo above same-script Amharic.
 - [x] Generation-based early stopping for the m2o runs (fixed 250-verse NT
       validation set, chrF3 every 1000 steps, best model kept) — default method
-- [~] Two bracketing runs (Tongan-relative, Romani-scratch, max 20k, patience 5)
-      to measure convergence + per-run time before the full matrix
-- [ ] Set the matrix step budget from the bracketing timings, then run the
-      full 15-run matrix with early stopping
+- [x] Bracketing (easy): Tongan-relative converges by ~step 1000; tightened
+      early stopping (patience 3, min-delta 0.2). `experiments/m2o-bracketing.md`
+- [ ] **Reboot the box** to clear the NVIDIA driver/library mismatch
+- [ ] Re-bracket the hard case (Romani-scratch) after reboot to size the
+      scratch-init budget
+- [ ] Run the full 15-run matrix with early stopping (relative/same-script/
+      existing ~4k steps; scratch budget TBD from the re-bracket)
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David

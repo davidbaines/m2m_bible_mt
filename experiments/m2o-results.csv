@@ -1,0 +1,4 @@
+target,init,book,same_script_sources,n_sources,best_source,best_chrF3,best_spBLEU,mean_chrF3,verses,per_source
+ton,relative,RUT,4,4,mri,21.92,2.85,21.39,85,"{'mri': 21.92, 'ind': 21.35, 'ceb': 20.82, 'tgl': 21.49}"
+ton,relative,JON,4,4,tgl,20.11,2.17,19.5,48,"{'mri': 19.48, 'ind': 19.2, 'ceb': 19.23, 'tgl': 20.11}"
+ton,relative,GEN 1:,4,4,mri,19.79,1.86,19.13,31,"{'mri': 19.79, 'ind': 19.12, 'ceb': 18.69, 'tgl': 18.94}"
