@@ -63,11 +63,13 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
   and ton-relative ~21 → 57.8 (the old Tongan number was underpowered too);
   1e-4 is still too cold (13.2). `train_nllb_m2o` gained `--lr` and records
   lr in results. Full story: `experiments/m2o-bracketing.md`.
-- **15-run matrix launched** (2026-07-07): ton/nde/mdy/rmc ×
-  relative/scratch/same_script + control_ilo × existing/relative/scratch, all
-  at lr 3e-4, max 8000 steps, patience 3/min-delta 0.2. ~4-6 h on the 3090.
-  Results → `experiments/m2o-matrix-results.csv` (old `m2o-results.csv` is
-  void, pre-lr-fix).
+- **15-run matrix DONE** (2026-07-07, ~7 h): headline findings — (1) the
+  token-init method doesn't matter (≤1 chrF3 spread everywhere; even the
+  control's real pretrained Ilocano token buys nothing over scratch);
+  (2) what matters is real source proximity: Ilocano 61 / Tongan 59 /
+  Ndebele 55 (close relatives, same script) > Romani 44 (relatives,
+  cross-script) >> Male 10 (no true relatives); (3) NLLB already knowing the
+  target is worth only ~2 chrF3. `experiments/m2o-matrix-results.md`.
 
 ## Active - next up
 
@@ -85,9 +87,9 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
       source dilution explains it. `experiments/ie-base-m2m-results.md`
 - [ ] Fairer m2m test before any big run: evaluate from relatives and/or
       oversample the pivot source and/or give m2m more steps
-- [~] NLLB many-to-one series (15 runs): unknown target from same-family
+- [x] NLLB many-to-one series (15 runs): unknown target from same-family
       sources, 3 token-init methods + control; NT-only, generate withheld
-      Ruth/Jonah/Genesis-1 (`samileides.train_nllb_m2o`, running)
+      Ruth/Jonah/Genesis-1 → `experiments/m2o-matrix-results.md`
 - [x] Alignment scores as a source factor: eflomal (built via a uv-managed
       Python) and an in-repo IBM-1, compared. The two disagree on the closest
       source for 3/5 targets, agreeing on same-script Latin cases and inverting
@@ -103,8 +105,9 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
       diagnosed to a too-cold lr (3e-5 inverse-sqrt), not the init or language
 - [x] lr re-bracket (rmc scratch 3e-4/1e-4, ton relative 3e-4): lr 3e-4 wins
       decisively; matrix budget max 8000 steps
-- [~] Full 15-run matrix at lr 3e-4 (running, ~4-6 h) →
-      `experiments/m2o-matrix-results.csv`
+- [x] Full 15-run matrix at lr 3e-4 → `experiments/m2o-matrix-results.md`
+      (init method irrelevant; source proximity is everything; Male is the
+      no-relatives floor at ~10)
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David
