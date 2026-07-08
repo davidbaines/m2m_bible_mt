@@ -22,6 +22,27 @@ from .nllb import NllbDataset
 from .preprocess import normalise
 
 
+def usable(text: str) -> bool:
+    """A verse cell that carries real text (not empty, not a range marker)."""
+    return bool(text) and text != "<range>"
+
+
+def target_token_for(cfg: dict, init: str, base_vocab) -> str:
+    """The target token a run trains with, given its config and init method.
+
+    Single source of truth shared by training (which bakes the token into the
+    checkpoint) and publishing (which must reconstruct the identical tokenizer):
+    the ``existing`` init uses the real NLLB token; otherwise the config's new
+    token, suffixed ``_new`` when NLLB already has a token of that name.
+    """
+    if init == "existing":
+        return cfg["existing_token"]
+    token = cfg["target"]["new_token"]
+    if token in base_vocab:
+        token = token + "_new"
+    return token
+
+
 def add_target_token(tokenizer, model, new_token: str, init_from: str | None) -> int:
     """Add a new target language token and initialise its embedding.
 

@@ -27,18 +27,17 @@ from __future__ import annotations
 
 import argparse
 import ast
-import json
 import shutil
-import subprocess
 from pathlib import Path
 
 import pandas as pd
 import yaml
 
 from .data import load_verses, repo_root
-from .evaluate import score
+from .evaluate import best_reference_baseline
 from .licensing import is_shareable, licence_of, model_licence_for
-from .nllb_m2o import test_vrefs
+from .nllb_m2o import target_token_for, test_vrefs, usable
+from .publish import git_commit, push
 
 NLLB_BASE_LICENCE = "cc-by-nc-4.0"  # facebook/nllb-200-* are CC-BY-NC-4.0
 
@@ -47,81 +46,80 @@ def default_repo_id(experiment: str) -> str:
     return f"DavidCBaines/ebible_m2o-nllb600m-{experiment.removeprefix('m2o_').replace('_', '-')}"
 
 
-def git_commit() -> str:
-    try:
-        return subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=repo_root(), text=True
-        ).strip()
-    except Exception:
-        return "unknown"
-
-
-def nllb_model_licence(data_licences) -> str:
-    """The licence a published NLLB fine-tune may carry.
-
-    The data-side licence is computed as usual (ShareAlike propagates), then
-    the NC clause is forced because the base model is CC-BY-NC-4.0 — even a
-    run trained purely on Public Domain text cannot be more permissive than
-    its base weights.
-    """
-    base = model_licence_for(data_licences, allow_nc=True)
-    if base == "cc0-1.0":
-        return NLLB_BASE_LICENCE
-    if "-nc" not in base:
-        base = base.replace("cc-by", "cc-by-nc")
-    return base
-
-
-def target_token_for(cfg: dict, init: str, base_vocab) -> str:
-    """The target token the run trained with (mirrors train_nllb_m2o)."""
-    if init == "existing":
-        return cfg["existing_token"]
-    token = cfg["target"]["new_token"]
-    if token in base_vocab:
-        token = token + "_new"
-    return token
-
-
 def source_copy_baselines(cfg: dict, verses: pd.DataFrame) -> dict[str, dict[str, float]]:
-    """chrF3 of each source's own text against the target reference, per book."""
+    """chrF3 of each source's own text against the target reference, per book.
+
+    The metric definition lives in ``evaluate.best_reference_baseline``; each
+    source is scored on the verses where both it and the target carry real
+    text (``<range>`` markers excluded), the same subset the model's own test
+    scores were computed on.
+    """
     tgt_tid = cfg["target"]["tid"]
     books = test_vrefs(verses, cfg["generate"])
     out: dict[str, dict[str, float]] = {}
     for book, vrefs in books.items():
         per_source = {}
         for s in cfg["sources"]:
-            idx = [v for v in vrefs if verses.at[v, s["tid"]] and verses.at[v, tgt_tid]]
+            idx = [v for v in vrefs
+                   if usable(verses.at[v, s["tid"]]) and usable(verses.at[v, tgt_tid])]
             if not idx:
                 continue
-            hyps = [verses.at[v, s["tid"]] for v in idx]
             refs = [verses.at[v, tgt_tid] for v in idx]
-            per_source[s["code"]] = score(hyps, refs)["chrF3"]
+            texts = [verses.at[v, s["tid"]] for v in idx]
+            _, per_source[s["code"]] = best_reference_baseline(refs, {s["code"]: texts})
         out[book] = per_source
     return out
 
 
+def source_floor(baselines: dict[str, dict[str, float]], book: str) -> tuple[str, float] | None:
+    """The strongest source-copy baseline for a book, or None if uncomputable."""
+    per_source = baselines.get(book)
+    if not per_source:
+        return None
+    return max(per_source.items(), key=lambda kv: kv[1])
+
+
 def check_gate(rows: pd.DataFrame, baselines: dict[str, dict[str, float]]) -> tuple[bool, list[str]]:
-    """Every book's generated best must beat every source's copy baseline."""
+    """Every book's generated best must beat the strongest source-copy floor.
+
+    A book whose floor cannot be computed fails the gate: without a baseline
+    the model's score cannot be certified.
+    """
     problems = []
     for _, r in rows.iterrows():
-        floor_src, floor = max(
-            baselines.get(r["book"], {"?": 0.0}).items(), key=lambda kv: kv[1]
-        )
-        if r["best_chrF3"] <= floor:
+        floor = source_floor(baselines, r["book"])
+        if floor is None:
+            problems.append(f"{r['book']}: no source-copy baseline computable")
+        elif r["best_chrF3"] <= floor[1]:
             problems.append(
                 f"{r['book']}: generated {r['best_chrF3']} does not beat the "
-                f"source-copy floor {floor} ({floor_src})"
+                f"source-copy floor {floor[1]} ({floor[0]})"
             )
     return not problems, problems
 
 
-def matrix_rows(results_csv: Path, target_code: str, init: str) -> pd.DataFrame:
+def matrix_rows(results_csv: Path, target_code: str, init: str,
+                lr: float | None = None) -> pd.DataFrame:
     df = pd.read_csv(results_csv)
     rows = df[(df["target"] == target_code) & (df["init"] == init)]
+    if lr is not None and "lr" in rows.columns:
+        rows = rows[rows["lr"] == lr]
     if rows.empty:
         raise SystemExit(
-            f"No rows for target={target_code} init={init} in {results_csv}. "
+            f"No rows for target={target_code} init={init}"
+            f"{f' lr={lr}' if lr is not None else ''} in {results_csv}. "
             "Publish only runs that are in the matrix results."
+        )
+    if "lr" in rows.columns and rows["lr"].nunique() > 1:
+        raise SystemExit(
+            f"{results_csv} holds rows at several learning rates for "
+            f"target={target_code} init={init}: {sorted(rows['lr'].unique())}. "
+            "Pass --lr to select the one matching the checkpoint."
+        )
+    if rows["book"].duplicated().any():
+        raise SystemExit(
+            f"Duplicate book rows for target={target_code} init={init} in "
+            f"{results_csv}; cannot tell which belong to this checkpoint."
         )
     return rows.reset_index(drop=True)
 
@@ -129,12 +127,12 @@ def matrix_rows(results_csv: Path, target_code: str, init: str) -> pd.DataFrame:
 def _score_table(rows: pd.DataFrame, baselines: dict[str, dict[str, float]]) -> str:
     out_rows = []
     for _, r in rows.iterrows():
-        floor = max(baselines.get(r["book"], {}).values(), default=0.0)
+        f = source_floor(baselines, r["book"])
         out_rows.append({
             "book": r["book"], "verses": r["verses"],
             "best source": r["best_source"], "chrF3": r["best_chrF3"],
             "spBLEU": r["best_spBLEU"], "mean chrF3 over sources": r["mean_chrF3"],
-            "source-copy floor": round(floor, 2),
+            "source-copy floor": round(f[1], 2) if f else "n/a",
         })
     detail = []
     for _, r in rows.iterrows():
@@ -148,7 +146,7 @@ def _score_table(rows: pd.DataFrame, baselines: dict[str, dict[str, float]]) -> 
 
 
 def build_model_card(
-    *, repo_id: str, cfg: dict, init: str, target_token: str,
+    *, repo_id: str, cfg: dict, init: str, target_token: str, lr: float,
     rows: pd.DataFrame, baselines: dict, licences: dict[str, str],
     model_licence: str, best_val: str, commit: str,
 ) -> str:
@@ -174,7 +172,7 @@ def build_model_card(
     body = f"""# {repo_id.split('/')[-1]}
 
 NLLB-200-distilled-600M fine-tuned to translate Bible verses **into
-{tgt['code']}** from four related source languages. Part of a series testing
+{tgt['code']}** from {len(cfg['sources'])} related source languages. Part of a series testing
 whether a pretrained multilingual model can draft Old Testament books for a
 language it has only seen the New Testament of — the practical "no OT exists
 yet" scenario. Project: reproduction and extension of Sami Liedes' 2018
@@ -232,9 +230,9 @@ licences below; ShareAlike sources additionally propagate SA. Released under
 
 ## Reproducibility
 
-- Experiment: `{cfg['name']}`, init `{init}`, lr 3e-4, max 8000 steps,
-  generation-based early stopping (chrF3 on a fixed 250-verse NT set,
-  patience 3, min-delta 0.2).
+- Experiment: `{cfg['name']}`, init `{init}`, lr {lr:g}, max
+  {cfg['training'].get('steps', '?')} steps, generation-based early stopping
+  (chrF3 on a fixed 250-verse NT set, patience 3, min-delta 0.2).
 - Git commit: `{commit}`
 - Code, configs and the full 15-run comparison: the project repository and
   the companion results dataset.
@@ -261,10 +259,12 @@ def assemble(args) -> dict:
     offenders = {t: l for t, l in licences.items() if not is_shareable(l, allow_nc=True)}
     if offenders:
         raise SystemExit(f"Licence gate FAILED: non-shareable sources {offenders}")
-    model_licence = nllb_model_licence(licences.values())
+    model_licence = model_licence_for(licences.values(), allow_nc=True,
+                                      base_model_licence=NLLB_BASE_LICENCE)
 
     # quality gate against freshly computed source-copy floors
-    rows = matrix_rows(Path(args.results), cfg["target"]["code"], args.init)
+    rows = matrix_rows(Path(args.results), cfg["target"]["code"], args.init, args.lr)
+    lr = float(rows["lr"].iloc[0]) if "lr" in rows.columns else float(cfg["training"].get("lr", 0))
     verses = load_verses(tids)
     baselines = source_copy_baselines(cfg, verses)
     passed, problems = check_gate(rows, baselines)
@@ -299,7 +299,7 @@ def assemble(args) -> dict:
     best_val = args.best_val or "(see results dataset)"
     card = build_model_card(
         repo_id=repo_id, cfg=cfg, init=args.init, target_token=target_token,
-        rows=rows, baselines=baselines, licences=licences,
+        lr=lr, rows=rows, baselines=baselines, licences=licences,
         model_licence=model_licence, best_val=best_val, commit=git_commit(),
     )
     (staging / "README.md").write_text(card, encoding="utf-8")
@@ -307,14 +307,6 @@ def assemble(args) -> dict:
     return {"repo_id": repo_id, "staging": staging, "model_licence": model_licence,
             "target_token": target_token, "tgt_id": tgt_id,
             "rows": rows, "baselines": baselines}
-
-
-def push(staging: Path, repo_id: str, private: bool) -> None:
-    from huggingface_hub import HfApi
-
-    api = HfApi()
-    api.create_repo(repo_id, repo_type="model", exist_ok=True, private=private)
-    api.upload_folder(folder_path=str(staging), repo_id=repo_id, repo_type="model")
 
 
 def run(args) -> None:
@@ -325,8 +317,9 @@ def run(args) -> None:
     print(f"  target token : {info['target_token']} (id {info['tgt_id']})")
     print(f"  staging      : {info['staging']}")
     for _, r in info["rows"].iterrows():
-        floor = max(info["baselines"].get(r["book"], {}).values(), default=0.0)
-        print(f"    {r['book']}: model {r['best_chrF3']} vs source-copy floor {round(floor, 2)}")
+        f = source_floor(info["baselines"], r["book"])
+        floor = f"{f[1]:.2f} ({f[0]})" if f else "n/a"
+        print(f"    {r['book']}: model {r['best_chrF3']} vs source-copy floor {floor}")
     if args.dry_run:
         print("\nDry run: staging built, nothing pushed.")
         return
@@ -345,6 +338,9 @@ def main() -> None:
     p.add_argument("--init", required=True, choices=["relative", "scratch", "same_script", "existing"])
     p.add_argument("--checkpoint", required=True, help="checkpoint dir (model.safetensors + config)")
     p.add_argument("--results", default=str(repo_root() / "experiments" / "m2o-matrix-results.csv"))
+    p.add_argument("--lr", type=float, default=None,
+                   help="select the results rows trained at this lr (required when "
+                        "the CSV holds several lrs for the same target+init)")
     p.add_argument("--best-val", default=None, help="best validation chrF3, for the card")
     p.add_argument("--repo", default=None, help="override the repo id")
     p.add_argument("--staging-dir", default=None)

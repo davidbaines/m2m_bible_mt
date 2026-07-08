@@ -23,9 +23,37 @@ from .data import load_verses, repo_root
 from .dataset import Collator
 from .evaluate import score
 from .nllb import NllbDataset
-from .nllb_m2o import add_target_token, build_m2o_pairs, generate_book, test_vrefs
+from .nllb_m2o import (add_target_token, build_m2o_pairs, generate_book,
+                       target_token_for, test_vrefs, usable)
 
 INIT_FROM = {"relative": "relative", "scratch": None, "same_script": "script_anchor"}
+
+
+def append_results(res_path: Path, rows: list[dict]) -> None:
+    """Append result rows to a shared CSV, refusing to misalign an old schema.
+
+    The header is written only for a new file; for an existing file the
+    column set must match exactly, otherwise DictWriter would silently write
+    shifted columns under the old header.
+    """
+    res_path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = list(rows[0].keys())
+    if res_path.exists():
+        first = res_path.read_text(encoding="utf-8").splitlines()
+        if first and first[0].split(",") != fieldnames:
+            raise SystemExit(
+                f"{res_path} has columns [{first[0]}] but this run produces "
+                f"{fieldnames}; appending would silently misalign. "
+                "Point --results at a fresh file."
+            )
+        header = not first
+    else:
+        header = True
+    with res_path.open("a", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=fieldnames)
+        if header:
+            w.writeheader()
+        w.writerows(rows)
 
 
 def run(args) -> None:
@@ -51,17 +79,13 @@ def run(args) -> None:
         model.config.use_cache = False
         model.gradient_checkpointing_enable()
 
-    # decide the target token + init
+    # decide the target token + init (token choice shared with publish_nllb)
+    target_token = target_token_for(cfg, args.init, tok.get_vocab())
     if args.init == "existing":
-        target_token = cfg["existing_token"]
         tgt_id = tok.convert_tokens_to_ids(target_token)
     else:
         init_key = INIT_FROM[args.init]
         init_from = cfg[init_key] if init_key else None
-        target_token = tgt["new_token"] if args.init != "existing" else cfg["existing_token"]
-        # for the control's non-existing inits, use a distinct placeholder token
-        if args.init != "existing" and target_token in tok.get_vocab():
-            target_token = target_token + "_new"
         tgt_id = add_target_token(tok, model, target_token, init_from)
 
     # generation must force the target token first (used by eval + test generation)
@@ -128,7 +152,7 @@ def run(args) -> None:
         best = None
         per_source = {}
         for s in cfg["sources"]:
-            idx = [v for v in vrefs if verses.at[v, s["tid"]] and refs_all[v]]
+            idx = [v for v in vrefs if usable(verses.at[v, s["tid"]]) and usable(refs_all[v])]
             if not idx:
                 continue
             srcs = [verses.at[v, s["tid"]] for v in idx]
@@ -151,13 +175,7 @@ def run(args) -> None:
 
     # append to the shared results CSV
     res_path = Path(args.results)
-    res_path.parent.mkdir(parents=True, exist_ok=True)
-    header = not res_path.exists()
-    with res_path.open("a", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=list(results_rows[0].keys()))
-        if header:
-            w.writeheader()
-        w.writerows(results_rows)
+    append_results(res_path, results_rows)
     print(f"Appended {len(results_rows)} rows to {res_path}")
 
 

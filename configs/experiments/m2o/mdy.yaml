@@ -8,5 +8,5 @@ sources:
   - {code: arb, tid: arb-vd, flores: arb_Arab}
   - {code: heb, tid: heb, flores: heb_Hebr}
   - {code: gaz, tid: gaze, flores: gaz_Latn}
-training: {lr: 3.0e-5, steps: 1500, warmup: 100, batch: 16, grad_accum: 1, gradient_checkpointing: true, max_len: 128}
+training: {lr: 3.0e-4, steps: 8000, warmup: 100, batch: 16, grad_accum: 1, gradient_checkpointing: true, max_len: 128}
 generate: {books: [RUT, JON], chapters: ["GEN 1:"], beam: 5, max_length: 128}

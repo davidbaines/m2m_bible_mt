@@ -8,5 +8,5 @@ sources:
   - {code: mar, tid: mar, flores: mar_Deva}
   - {code: guj, tid: guj2017, flores: guj_Gujr}
   - {code: asm, tid: asmfb, flores: asm_Beng}
-training: {lr: 3.0e-5, steps: 1500, warmup: 100, batch: 16, grad_accum: 1, gradient_checkpointing: true, max_len: 128}
+training: {lr: 3.0e-4, steps: 8000, warmup: 100, batch: 16, grad_accum: 1, gradient_checkpointing: true, max_len: 128}
 generate: {books: [RUT, JON], chapters: ["GEN 1:"], beam: 5, max_length: 128}

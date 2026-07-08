@@ -60,21 +60,31 @@ def check_shareable(
     return offenders.empty, offenders
 
 
-def model_licence_for(licences, allow_nc: bool = False) -> str:
+def model_licence_for(licences, allow_nc: bool = False,
+                      base_model_licence: str | None = None) -> str:
     """The HF licence identifier a model may carry given its source licences.
 
     ShareAlike is the most restrictive of the permissive set, so any ``by-sa``
     source forces ``cc-by-sa-4.0``; otherwise attribution or public domain.
     Non-commercial sources (when allowed) append the NC clause.
+
+    ``base_model_licence`` covers fine-tunes of a pretrained model: pass the
+    base weights' CC licence identifier (e.g. ``cc-by-nc-4.0`` for NLLB-200)
+    and its NC/SA clauses propagate to the result — a fine-tune can never be
+    more permissive than its base, even on all-Public-Domain data.
     """
     licset = set(licences)
     nc = bool(licset & SHAREABLE_NC)
-    if "by-sa" in licset:
+    sa = "by-sa" in licset
+    if base_model_licence:
+        nc = nc or "-nc" in base_model_licence
+        sa = sa or base_model_licence.replace("-nc", "").startswith("cc-by-sa")
+    if sa:
         base = "cc-by-sa-4.0"
-    elif "by" in licset or nc:
+    elif "by" in licset or nc or base_model_licence:
         base = "cc-by-4.0"
-    else:  # everything is Public Domain
+    else:  # everything is Public Domain, no base-model constraint
         base = "cc0-1.0"
-    if nc and allow_nc and base != "cc0-1.0":
+    if nc and (allow_nc or base_model_licence) and base != "cc0-1.0":
         base = base.replace("cc-by", "cc-by-nc")
     return base

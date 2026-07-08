@@ -118,6 +118,15 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
       `runs/m2o_winners/` (gitignored). Ilocano publishes the existing-init
       variant (60.63, standard `ilo_Latn` token, friendlier than scratch's
       `ilo_Latn_new` for a 0.2 noise-level difference).
+- [x] Post-publish code review (10 findings) applied: schema-guarded results
+      append; shared `target_token_for` in `nllb_m2o`; base-model licence
+      propagation moved into `licensing.model_licence_for`; gate fails (not
+      crashes/passes) on missing baselines; `matrix_rows` demands an
+      unambiguous lr; `<range>` filtered from scoring; card reads real
+      lr/steps/source-count; configs updated to lr 3e-4 / 8000 steps;
+      publish helpers imported from `publish` instead of copied. Incidental
+      finding: the Romani translation (`rmc`) is **by-nd** — an rmc model can
+      never be published; research-only.
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David
