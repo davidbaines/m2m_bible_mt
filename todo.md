@@ -108,6 +108,16 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
 - [x] Full 15-run matrix at lr 3e-4 → `experiments/m2o-matrix-results.md`
       (init method irrelevant; source proximity is everything; Male is the
       no-relatives floor at ~10)
+- [x] NLLB publish path (`samileides.publish_nllb`, +tests): source-copy
+      quality gate, licence gate with the NLLB CC-BY-NC-4.0 base forcing NC,
+      deterministic tokenizer reconstruction, model card. Four repos staged
+      **private** on the Hub (2026-07-08), all verified loadable:
+      `ebible_m2o-nllb600m-ton` / `-nde` / `-control-ilo` (cc-by-nc-sa-4.0)
+      and the results dataset `ebible_m2o-nllb-results` (methodology,
+      write-ups, CSVs, configs). Winning checkpoints secured from /tmp to
+      `runs/m2o_winners/` (gitignored). Ilocano publishes the existing-init
+      variant (60.63, standard `ilo_Latn` token, friendlier than scratch's
+      `ilo_Latn_new` for a 0.2 noise-level difference).
 - [ ] Make `ebible_m2m-ie-base-shareable` public once reviewed.
 
 ## Blocked on David
@@ -115,6 +125,8 @@ current and tick tasks `[x]` as they are completed. Maintenance routine:
 - [ ] SIL to fix the ClearML agent bootstrap on the workers (pin `setuptools<81`,
       upgrade clearml-agent, or set a working default docker image).
 - [ ] Approve making the published HF repo public.
+- [ ] Review the four private m2o repos (3 models + results dataset) and
+      approve making them public.
 
 ## Roadmap (strategic direction, not a strict order)
 

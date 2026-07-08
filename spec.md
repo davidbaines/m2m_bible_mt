@@ -435,6 +435,16 @@ section above.
   even though only redistributable data is included.
 - **2026-07-06, roadmap**: prioritise many-to-many, then transformer-big on the
   A100, with the NLLB fine-tune as a separate track (see "Roadmap" above).
+- **2026-07-08, NLLB m2o publishing**: the three useful m2o fine-tunes
+  (Tongan, N. Ndebele, Ilocano control) plus a results/methodology dataset
+  repo staged **private** under `DavidCBaines` via a new gated command
+  (`samileides.publish_nllb`). Licence rule extended: the base model's
+  licence propagates too — NLLB-200 is CC-BY-NC-4.0, so every NLLB fine-tune
+  is non-commercial (`cc-by-nc-sa-4.0` here) even when the data is all
+  by-sa/PD. Quality gate for m2o = beat the source-copy baseline (the best
+  source's own text vs the target reference) on every test book. Repo naming:
+  `ebible_m2o-nllb600m-<target>`; results dataset `ebible_m2o-nllb-results`
+  (cc-by-sa-4.0). Checkpoints not in the repos stay local only.
 - **2026-07-06, local experiments while ClearML is down**: the H100 agents are
   blocked by an agent-side bug (`experiments/clearml-agent-issue.md`), so the
   3090 is used for: (a) the many-to-many pair sampler, built and verified
