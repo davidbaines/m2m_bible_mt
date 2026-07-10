@@ -1,73 +1,61 @@
-# Project brief
+# Project brief: next series of experiments
+
+*(Draft — David to state the goal; the previous, completed brief is
+`project-brief-liedes-reproduction.md`.)*
 
 ## Outline
-Sami Liedes carried out a successful experiment in machine translation of a
-closed text - the text of the Bible. The aim of this project is to reproduce
-that experiment with a transformer model rather than the sequence-to-sequence
-model he used, and with more data available.
+
+<!-- What should this series find out or produce? One or two sentences. -->
+
+To be decided. The candidate directions below carry over from the completed
+Liedes-reproduction series; pick, combine, or replace them.
+
+## Where the last series left off
+
+The Liedes reproduction is complete: full from-scratch pipeline; the
+Indo-European runs (`ie_base` 40.7/40.5/38.1 held-out-OT chrF3 for
+eng/deu/hin, shareable twin published); the NLLB many-to-one series (15-run
+matrix; token-init irrelevant, source proximity decisive, lr 3e-4 essential);
+five repos on the Hub awaiting review. Details: `spec.md` (decisions log),
+`todo.md` (current status), `experiments/*.md` (results).
+
+Two findings that should shape whatever comes next:
+
+1. **Learning rate dominates everything else** for NLLB fine-tunes into new
+   languages: 3e-5 looks like fundamental failure, 3e-4 works. Any earlier
+   NLLB result trained at 3e-5 (notably `nllb_ie`, 52.8/51.1/42.7) is
+   probably underpowered and cheap to improve.
+2. **Real linguistic proximity of the sources is the ceiling**: close
+   relatives 55-61 chrF3, cross-script relatives 44, no true relatives ~10.
+   Source selection matters more than model tricks.
+
+## Candidate directions (from the roadmap)
+
+- **Fairer many-to-many test**, then the flagship transformer-big (~210M)
+  many-to-many run (blocked on the ClearML agent fix for remote H100s;
+  runnable at reduced scale on the A100/3090).
+- **Rerun `nllb_ie` at the corrected lr** — likely the cheapest large gain.
+- **Scaled one-to-many**: all ~179 full Bibles plus diverse partials, BPE 64k.
+- **Other single families** (all-Bantu, all-Austronesian) and
+  family-versus-diverse at matched scale.
+- **Multi-source inference ensembling** and **iterative backtranslation**
+  (spec.md, "Roadmap to stronger results").
+- **Tokeniser variants** (unigram, byte-level) on the best config.
+- **Report and publish**: the written report in `report/` remains unstarted.
 
 ## Constraints
-- The experiment must run on a single H100 with 40 GB of RAM.
 
-## Background research
-1. The surrounding context is on the Sami Liedes website (downloaded as
-   "Sami Liedes – Data and general life geekery.html").
-2. The original source code for all the scripts is at
-   https://github.com/sliedes/fairseq-py — useful for ideas and guidance.
-
-## Approach
-Implement a multilingual closed-text translation model with up-to-date machine
-learning techniques.
+- Local RTX 3090 (24 GB) always available; A100 (80 GB) for research runs;
+  remote H100s via ClearML once SIL fixes the agent bootstrap.
+- Publishing gates as established: quality floor, licence policy (base-model
+  licences propagate; `by-nd`/unknown sources are never publishable).
 
 ## Data source
-Training data comes from this Hugging Face dataset:
-https://huggingface.co/datasets/DavidCBaines/ebible_corpus
 
-The dataset was built partly to reproduce Sami Liedes' experiment, described on
-his blog: https://samiliedes.wordpress.com/author/samiliedes/ — He trained a
-model on the Bible in ~50 languages, omitting Genesis (or the whole Old
-Testament) from three of them. The model then "knows" the content of the Bible
-from having seen it in many languages, and can translate Genesis into the
-languages it was never trained on for Genesis. This data is being prepared to
-repeat variations of that experiment.
+Hugging Face dataset `DavidCBaines/ebible_corpus`, as before.
 
-## Settled decisions
-Agreed in the planning interview on 2026-07-05 (details in `spec.md`):
+## Approach
 
-- From-scratch encoder-decoder transformer in HF Transformers, transformer-big
-  scale throughout; a pretrained fine-tune (e.g. NLLB) is a later, separate
-  comparison. fairseq2 / custom loop noted as fallbacks.
-- Staged data: ~50-translation pilot, then a curated few hundred; partial
-  (NT-only) translations included in training; selection by a criteria-driven
-  script with manual overrides, lists committed.
-- One-to-many first from a composite Greek source (`grcbrent` LXX +
-  `grc-tisch` NT, native Greek script), then many-to-many (K random sources
-  per target verse, K=4 default; pivot-set variant compared later). English
-  source variant uses `engbsb` (BSB).
-- Holdouts: English OT (`engbsb`, NT-only training), German Genesis
-  (`deuelbbk`), Finnish one Gospel (no Finnish OT exists in the corpus), plus
-  ~5 criteria-chosen diverse languages with Genesis held out (list approved
-  before training). Book-level splits only.
-- Native scripts, case kept, NFC only; verse-by-verse examples.
-- Tokenisers, in order: SentencePiece BPE (32k pilot / 64k scaled), then
-  unigram, then byte-level; tags atomic; trained on training data only.
-- Modern decoding defaults (beam 5, no holdout oversampling); his 3×
-  oversampling and beam 120 tested as pilot-stage ablations.
-- Evaluation: chrF3, chrF3+, chrF3++, spBLEU, BLEU (silnlp/machine.py
-  conventions); full generated books plus configurable side-by-side sample
-  sheets; trivial baselines for context.
-- Infra: local Linux 3090 for dev/smoke runs; ClearML-managed remote H100s
-  (40 GB) for real runs, ClearML also the experiment tracker; rclone +
-  WireGuard transfer; models and outputs published to the HF Hub. Every full
-  run capped at ~12 h.
-- This folder is the repo: git + uv, Python ≥ 3.11, `src/` layout, YAML
-  configs, pytest.
-
-## Design summary
-Train a transformer-big encoder-decoder from scratch on verse-aligned Bible
-translations from the eBible corpus, target-language tags prepended to a fixed
-Greek source (later many-to-many), with whole books withheld from designated
-languages. Generate the withheld books and score them with chrF3-family and
-BLEU-family metrics against the real translations — a quantitative,
-larger-scale rerun of Liedes' qualitative 2018 experiment. Full details and
-verification plan: `spec.md`; running task list: `todo.md`.
+Run the planning interview (`/interview-and-plan`) against this brief once
+the Outline is filled in; it will produce a fresh `spec.md` section (or a new
+spec) and a task list.

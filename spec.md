@@ -305,7 +305,7 @@ Compute available (updated 2026-07-06):
   the outstanding pieces). File transfer via the existing rclone + WireGuard
   setup.
 
-The original single-H100-40 GB constraint in `project-brief.md` is superseded
+The original single-H100-40 GB constraint in `project-brief-liedes-reproduction.md` is superseded
 by this wider pool; the ~12 h per-full-run cap remains the working guideline
 for H100 runs.
 
@@ -358,7 +358,7 @@ agreed with David on 2026-07-06:
 - git repo in this folder; uv-managed Python ≥ 3.11; `pyproject.toml`;
   `src/samileides/` package; `configs/` (YAML per experiment); `experiments/`
   (committed selection lists and results tables); `report/`; `tests/` (pytest).
-- The `webpages/` folder and `project-brief.md` stay as project background.
+- The `webpages/` folder and `project-brief-liedes-reproduction.md` stay as project background.
 
 ## Deviations from the original (to be tabled in the report)
 
@@ -419,7 +419,7 @@ section above.
 
 - **2026-07-05**: architecture, staged data, one-to-many-first, holdout design,
   tokeniser order, evaluation metrics, infra (the "Settled decisions" in
-  `project-brief.md`).
+  `project-brief-liedes-reproduction.md`).
 - **2026-07-06, single-family experiment**: run an Indo-European-only,
   one-to-many experiment on the 3090; whole OT withheld from English, German
   and Hindi (approved for this run); transformer-base scale.
