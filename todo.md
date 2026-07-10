@@ -5,71 +5,51 @@ what"; this file is the living "where we are". Keep the Current status block
 current and tick tasks `[x]` as they are completed. Maintenance routine:
 `spec.md`, "Maintaining these documents".
 
-## Current status (2026-07-06)
+## Current status (2026-07-10)
 
-- **Done**: repo and data foundations; the full pipeline end to end (selection,
-  splits, composite Greek source, preprocessing, tokeniser, training,
-  generation, evaluation); the single-family Indo-European research run
-  `ie_base` (held-out OT chrF3 40.7 English / 40.5 German / 38.1 Hindi); its
-  licence-clean twin `ie_base_shareable`; and the Hugging Face publishing
-  pipeline with quality and licence gates.
-- **Live on the Hub**: `DavidCBaines/ebible_m2m-ie-base-shareable` (private,
-  `cc-by-sa-4.0`), verified loadable with `from_pretrained`.
-- **Next action**: the flagship transformer-big many-to-many run on
-  `jobs_backlog`, once the ClearML agent env is fixed (below).
-- **Many-to-many sampler**: built and verified on the 3090
-  (`samileides.manytomany`, smoke_m2m).
-- **NLLB fine-tune**: done. `nllb_ie` (600M, IE many-to-many, from a Spanish
-  pivot) drafted held-out OTs at chrF3 52.8 German / 51.1 English / 42.7 Hindi,
-  above from-scratch `ie_base` (40.5/40.7/38.1) but on an easier task; see
-  `experiments/nllb-ie-results.md`.
-- **ie_base_m2m** done: many-to-many scored *below* one-to-many by ~8-10 chrF3
-  (31.9/32.6/28.3 vs 40.7/40.5/38.1), because both were evaluated from the fixed
-  Greek source, which many-to-many trains on far less. Not a fair test of m2m's
-  real strength (generating from a relative). See
-  `experiments/ie-base-m2m-results.md`.
-- **NLLB many-to-one series**: now has generation-based early stopping (chrF3 on
-  a fixed 250-verse NT validation set every 1000 steps, best model kept). Two
-  bracketing runs are training now (Tongan-relative = easy, Romani-scratch =
-  hard, max 20k steps, patience 5) to measure convergence and per-run time
-  before committing the full matrix.
-- **Alignment factor** done: eflomal (uv-managed-Python build) vs in-repo IBM-1;
-  they disagree on the closest source for 3/5 targets
-  (`experiments/m2o-alignment-comparison.md`).
-- **ClearML**: connected (queue `jobs_backlog`, 8 workers). Remote launch code
-  is in place (`train --remote-queue`, artifact upload, `samileides.fetch`) and
-  the git remote (`github.com/davidbaines/m2m_bible_mt`, public) works, but the
-  plumbing test **failed on the agent side**: workers run each task in a fresh
-  `python:3.12-bullseye` container where `clearml-agent 2.0.4`'s own bootstrap
-  crashes with `ModuleNotFoundError: No module named 'pkg_resources'` (it
-  installs setuptools 83, which no longer ships pkg_resources). Needs an SIL
-  admin fix; nothing to change on our side.
-- **Blocked on David**: SIL to fix the ClearML agent env (pin `setuptools<81`
-  in the worker/container, upgrade clearml-agent, or set a working default
-  docker image); choice of the next run; whether to make the published HF repo
-  public.
-- **GPU restored (2026-07-07)**: the reboot cleared the driver/library
-  mismatch but booted a newer kernel (6.17.0-35) with no headers installed, so
-  DKMS had no nvidia module for it. Fixed by installing
-  `linux-headers-6.17.0-35-generic` (DKMS rebuilt 580.159.03) + `modprobe
-  nvidia`. torch 2.12.1+cu130 verified on the 3090 (bf16 matmul ok).
-- Bracketing: Tongan-relative converged by ~step 1000 (val chrF3 ~21, flat),
-  61 min for a wasteful 15k steps -> tightened early stopping (patience 3,
-  min-delta 0.2). Romani-scratch never ran (GPU died first);
-  `experiments/m2o-bracketing.md`.
-- **m2o root cause found and fixed**: the Romani brackets failed flat because
-  **lr 3e-5 was too cold** for a cross-script target with a fresh token. The
-  lr re-bracket settled it: at lr 3e-4, rmc-scratch went 5.7 → 44.6 val chrF3
-  and ton-relative ~21 → 57.8 (the old Tongan number was underpowered too);
-  1e-4 is still too cold (13.2). `train_nllb_m2o` gained `--lr` and records
-  lr in results. Full story: `experiments/m2o-bracketing.md`.
-- **15-run matrix DONE** (2026-07-07, ~7 h): headline findings — (1) the
-  token-init method doesn't matter (≤1 chrF3 spread everywhere; even the
-  control's real pretrained Ilocano token buys nothing over scratch);
-  (2) what matters is real source proximity: Ilocano 61 / Tongan 59 /
-  Ndebele 55 (close relatives, same script) > Romani 44 (relatives,
-  cross-script) >> Male 10 (no true relatives); (3) NLLB already knowing the
-  target is worth only ~2 chrF3. `experiments/m2o-matrix-results.md`.
+- **The NLLB many-to-one chapter is complete** — pipeline, lr root-cause,
+  15-run matrix, code-reviewed publish path, and four private Hub repos.
+  Nothing is running; the 3090 is free. Next experiment is David's choice
+  (candidates under Roadmap: fairer m2m evaluation before the flagship
+  transformer-big run; scaled one-to-many; another single family; ClearML
+  smoke once SIL fixes the agent).
+- **m2o headline findings** (`experiments/m2o-matrix-results.md`): (1) the
+  token-init method doesn't matter (≤1 chrF3 spread; even the control's real
+  pretrained Ilocano token buys nothing over scratch); (2) real source
+  proximity is everything: Ilocano 61 / Tongan 59 / Ndebele 55 (close
+  relatives, same script) > Romani 44 (relatives, cross-script) >> Male 10
+  (no true relatives); (3) NLLB already knowing the target is worth only
+  ~2 chrF3. **Critical caveat for all NLLB fine-tunes: lr 3e-5 is fatally
+  cold for new-language targets — use 3e-4** (`experiments/m2o-bracketing.md`).
+- **Live on the Hub, private, awaiting David's review to go public**:
+  `DavidCBaines/ebible_m2m-ie-base-shareable` (cc-by-sa-4.0) and the four m2o
+  repos — `ebible_m2o-nllb600m-ton` / `-nde` / `-control-ilo`
+  (cc-by-nc-sa-4.0 models) + `ebible_m2o-nllb-results` (dataset). All
+  verified loadable. David hand-edited the model-card acknowledgements on
+  the Hub (2026-07-10); the wording is folded into `build_model_card`, so
+  re-publishing preserves it.
+- **Local model artefacts**: `runs/m2o_winners/` (gitignored) holds the
+  published checkpoints plus Romani-scratch (unpublishable — `rmc` is
+  **by-nd** — but the best cross-script demo). `runs/staging/` mirrors the
+  Hub repos. Everything else in the session /tmp scratchpad is disposable.
+- **Earlier from-scratch results** (all in `experiments/`): `ie_base` OT
+  chrF3 40.7/40.5/38.1 (eng/deu/hin); `ie_base_shareable` 41.0/38.7/32.7;
+  `ie_base_m2m` scored below one-to-many from the fixed Greek source (not a
+  fair test of m2m; see roadmap); `nllb_ie` 52.8/51.1/42.7 from a Spanish
+  pivot. NOTE: `nllb_ie` used lr 3e-5 — the m2o lr finding suggests it too
+  was underpowered; a rerun at a higher lr may lift it substantially.
+- **Alignment factor** done: eflomal vs in-repo IBM-1 disagree on the closest
+  source for 3/5 targets (`experiments/m2o-alignment-comparison.md`); eflomal's
+  Maori-for-Tongan pick got small downstream support in the bracketing.
+- **ClearML**: connected (queue `jobs_backlog`, 8 workers), remote launch code
+  ready, but the agent-side bootstrap crash (`pkg_resources` missing in the
+  worker container) still needs an SIL admin fix. Re-run the smoke test when
+  that lands.
+- **Blocked on David**: SIL ClearML fix; review + make-public decision for
+  the five Hub repos; choice of the next experiment.
+- GPU healthy (driver 580.159.03 rebuilt via DKMS after the 2026-07-07
+  kernel-upgrade incident; recovery recipe in the gpu-driver-mismatch memory
+  and `experiments/m2o-bracketing.md`).
 
 ## Active - next up
 
