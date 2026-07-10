@@ -157,6 +157,40 @@ model = MarianMTModel.from_pretrained("DavidCBaines/ebible_m2m-ie-base")
 tokenizer = MarianTokenizer.from_pretrained("DavidCBaines/ebible_m2m-ie-base")
 ```
 
+NLLB fine-tunes (the many-to-one series, prefix `ebible_m2o`) have their own
+publish command with the same gates, plus the rule that the base model's
+CC-BY-NC-4.0 licence propagates to every fine-tune:
+
+```bash
+uv run python -m samileides.publish_nllb --config configs/experiments/m2o/ton.yaml \
+    --init scratch --checkpoint runs/m2o_winners/m2o_ton_scratch --dry-run
+```
+
+### Updating a published repository
+
+Every repository on the Hub is a git repository, so an edit made in the web
+editor creates a commit in the repo's history, exactly as a push would. There
+are four equivalent ways to update a published repo:
+
+1. **The web editor** on huggingface.co — open the file in the repo's *Files*
+   tab and edit in place. Perfectly good for model-card (README) edits.
+2. **The API from local files** — what the publish commands use: regenerate or
+   edit the local staging folder (`runs/staging/<name>`), then
+   `HfApi().upload_folder(folder_path=..., repo_id=..., repo_type="model")`.
+   Only changed files are transferred.
+3. **git clone** — e.g.
+   `git clone https://huggingface.co/DavidCBaines/ebible_m2o-nllb600m-ton`,
+   then edit, commit and push like any git repo. Works, but cloning pulls the
+   full model weights (~2.4 GB), so it is the clunkiest option for card tweaks.
+4. **`huggingface-cli upload <repo> <file>`** — one-off file pushes from the
+   terminal.
+
+One caution: the model cards are *generated* by the publish commands, so a
+hand edit made on the Hub (methods 1, 3 or 4) will be overwritten by the next
+re-publish unless the wording is also folded into the card template
+(`build_model_card` in `src/samileides/publish_nllb.py` or
+`src/samileides/hf_export.py`).
+
 ## Testing
 
 ```bash
