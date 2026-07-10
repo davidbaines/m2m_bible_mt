@@ -239,8 +239,11 @@ licences below; ShareAlike sources additionally propagate SA. Released under
 
 ## Acknowledgement
 
-This series extends the closed-text Bible translation experiment described by
-Sami Liedes (2018). The work is independent and not endorsed by him.
+This series of experiments is inspired by the closed-text Bible translation experiment
+described by Sami Liedes in his [blog](https://samiliedes.wordpress.com/).
+The repo was created with Claude Code using Opus 4.8 and Fable 5 with no code written by hand.
+There may well be errors present, but I trust Claude to do a better job than I can. Please let me
+know of any issues.
 """
     return header + "\n" + body
 
