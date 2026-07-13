@@ -48,19 +48,54 @@ def load_metadata() -> pd.DataFrame:
 
 @lru_cache(maxsize=1)
 def translation_columns() -> tuple[str, ...]:
-    """Column names of main.parquet (excluding vref), read from the schema only."""
+    """Column names of main.parquet (excluding vref), read from the schema only.
+
+    The names are cached to ``data/cache/columns.txt`` on first fetch, so a box
+    whose verse data is already cached can resolve translation ids fully
+    offline — the dev 3090 has intermittent DNS, and column names never change
+    for a fixed dataset revision. Delete that file to force a refetch.
+    """
     import pyarrow.parquet as pq
 
     local = data_dir() / "main.parquet"
+    columns_cache = data_dir() / "cache" / "columns.txt"
     if local.exists():
         names = pq.ParquetFile(local).schema_arrow.names
+    elif columns_cache.exists():
+        names = columns_cache.read_text(encoding="utf-8").splitlines()
     else:
-        from huggingface_hub import HfFileSystem
+        try:
+            from huggingface_hub import HfFileSystem
 
-        fs = HfFileSystem()
-        with fs.open(f"datasets/{EBIBLE_REPO}/main.parquet", "rb") as f:
-            names = pq.ParquetFile(f).schema_arrow.names
+            fs = HfFileSystem()
+            with fs.open(f"datasets/{EBIBLE_REPO}/main.parquet", "rb") as f:
+                names = pq.ParquetFile(f).schema_arrow.names
+            columns_cache.parent.mkdir(parents=True, exist_ok=True)
+            columns_cache.write_text("\n".join(names) + "\n", encoding="utf-8")
+        except Exception:
+            # Offline fallback: the union of column names across already-cached
+            # verse subsets. Correct for exact-id resolution (the usual case);
+            # a genuinely absent id still raises a clear KeyError in
+            # resolve_column. Deliberately NOT persisted as the authoritative
+            # columns.txt, since it is only a partial view.
+            names = _cached_column_union()
+            if not names:
+                raise
     return tuple(n for n in names if n != VREF_COLUMN)
+
+
+def _cached_column_union() -> list[str]:
+    """Union of column names across cached ``data/cache/verses-*.parquet``."""
+    import pyarrow.parquet as pq
+
+    cache_dir = data_dir() / "cache"
+    names: set[str] = set()
+    for path in cache_dir.glob("verses-*.parquet"):
+        try:
+            names.update(pq.ParquetFile(path).schema_arrow.names)
+        except Exception:
+            continue
+    return sorted(names)
 
 
 def resolve_column(translation_id: str) -> str:

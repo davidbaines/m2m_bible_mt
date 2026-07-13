@@ -28,10 +28,14 @@ class DataConfig:
     holdouts: str
     source: str = "greek"
     max_len: int = 192
-    max_ratio: float = 2.0
+    max_ratio: float = 2.0         # 0 disables the ratio filter (vref sources)
     pairing: str = "one-to-many"   # or "many-to-many"
     k: int = 4                     # many-to-many: sources sampled per target verse
     pivot: str = "spa"             # NLLB eval: source language for held-out generation
+    vref_encoding: str = "struct"  # source == "vref": struct | vtok | text
+    # Repo-relative path to a committed manifest checksum; when set, training
+    # asserts the train pair set matches it (spec-vref.md, verification #2).
+    expected_train_manifest: str | None = None
 
 
 @dataclass
@@ -83,6 +87,27 @@ class InferenceConfig:
 
 
 @dataclass
+class ProbeConfig:
+    """Held-out probe evaluation during training (spec-vref.md, "Training").
+
+    Present in a config's ``probe:`` section => probes run every
+    ``every_steps``, drive early stopping on macro chrF3 and select the best
+    checkpoint; the loss-based EarlyStoppingCallback is then disabled.
+    """
+
+    every_steps: int = 1000
+    verses_per_language: int = 250
+    min_gain: float = 1.0          # macro chrF3 must gain this much ...
+    patience_steps: int = 20000    # ... within this many steps, else stop
+    batch_size: int = 64
+    seed: int = 13
+    early_stop: bool = True         # False => run to max_steps, probe throughout
+    # Also probe SEEN (trained) verses of the holdout languages, to watch
+    # memorisation separately from held-out transfer (spec-vref.md). 0 disables.
+    seen_verses_per_language: int = 250
+
+
+@dataclass
 class ExperimentConfig:
     name: str
     phase: str
@@ -91,6 +116,7 @@ class ExperimentConfig:
     model: ModelConfig
     training: TrainingConfig
     inference: InferenceConfig
+    probe: ProbeConfig | None = None
     oversample_holdouts: int = 1
     path: Path | None = None
 
@@ -106,6 +132,10 @@ class ExperimentConfig:
             model=ModelConfig(**_only_known(ModelConfig, raw.get("model", {}))),
             training=TrainingConfig(**_only_known(TrainingConfig, raw.get("training", {}))),
             inference=InferenceConfig(**_only_known(InferenceConfig, raw.get("inference", {}))),
+            probe=(
+                ProbeConfig(**_only_known(ProbeConfig, raw["probe"]))
+                if "probe" in raw else None
+            ),
             oversample_holdouts=int(raw.get("oversample_holdouts", 1)),
             path=path,
         )

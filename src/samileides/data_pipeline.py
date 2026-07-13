@@ -48,6 +48,13 @@ def prepare(cfg: ExperimentConfig) -> PreparedData:
     verses = load_verses(target_ids)
     if cfg.data.source == "greek":
         source = build_composite_source()
+    elif cfg.data.source == "vref":
+        # Encoded verse references as the source; masked to the composite
+        # Greek source's coverage so the pair set is identical to ie_base's
+        # (spec-vref.md, "Data").
+        from .vref import build_vref_source
+
+        source = build_vref_source(cfg.data.vref_encoding, build_composite_source())
     else:  # a single translation id used as the source column
         source = load_verses([cfg.data.source])[cfg.data.source]
 

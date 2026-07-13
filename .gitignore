@@ -21,5 +21,8 @@ clearml.conf
 Thumbs.db
 
 # Personal conversation transcripts and exports, not part of the project
-conversation_with_claude*
+*conversation_with_claude*
 runs/
+
+# Local training/run logs
+logs/

@@ -14,6 +14,7 @@ Two sanity modes back the verification plan (spec.md #4):
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 from pathlib import Path
@@ -24,7 +25,7 @@ from .data_pipeline import prepare
 from .dataset import Collator, PairDataset
 from .model import build_model
 from .preprocess import SRC_COLUMN, TGT_COLUMN
-from .splits import assert_no_leakage
+from .splits import assert_no_leakage, manifest_checksum
 from .tokenizer import load_tokenizer, train_tokenizer
 
 
@@ -69,10 +70,25 @@ def _upload_artifacts(output: Path) -> None:
 
 
 def _leading_tags(src: str) -> list[str]:
-    """The leading `<1..>`/`<2..>` language tags on a source line."""
+    """The leading `<1..>`/`<2..>` language tags on a source line.
+
+    The body after the ``1``/``2`` must be a lowercase language code, which
+    distinguishes a real tag (``<2eng>``) from a vref *book* token that also
+    starts with a digit (``<1CH>``, ``<2CO>``) or a vtok verse symbol
+    (``<1CH_10:10>``) — those are source symbols, not language tags, and must
+    not reach the base tokeniser as user-defined pieces.
+    """
     out = []
     for tok in src.split(" "):
-        if len(tok) > 2 and tok[0] == "<" and tok[-1] == ">" and tok[1] in "12":
+        body = tok[2:-1]
+        if (
+            len(tok) > 2
+            and tok[0] == "<"
+            and tok[-1] == ">"
+            and tok[1] in "12"
+            and body.isalpha()
+            and body.islower()
+        ):
             out.append(tok)
         else:
             break
@@ -98,12 +114,59 @@ def train_tokenizer_for(cfg: ExperimentConfig, train_pairs, output: Path):
     return load_tokenizer(model_path)
 
 
+def vref_tokenizer_for(cfg: ExperimentConfig, train_pairs, all_vrefs, output: Path):
+    """The shared-base tokeniser for vref runs (spec-vref.md, "Tokeniser").
+
+    One SentencePiece base is trained on the training-split targets plus every
+    raw vref string, then per-encoding symbols are appended as atomic pieces —
+    so target-side segmentation is byte-identical across the three encodings.
+    The base is cached under ``checkpoints/vref_shared/`` keyed by a corpus
+    digest; the three runs of one series therefore share one file, while a
+    different selection (e.g. the smoke config) gets its own.
+    """
+    from .vref import extend_tokenizer, source_symbols
+
+    tags = set()
+    for s in train_pairs[SRC_COLUMN]:
+        tags.update(_leading_tags(s))
+    tags = sorted(tags)
+    corpus = train_pairs[TGT_COLUMN].tolist() + [str(v) for v in all_vrefs]
+
+    digest = hashlib.sha256(
+        "\n".join(
+            [f"{cfg.tokenizer.type}-{cfg.tokenizer.vocab_size}", *tags, *corpus]
+        ).encode("utf-8")
+    ).hexdigest()
+    shared = repo_root() / "checkpoints" / "vref_shared"
+    base = shared / f"spm_base_{digest[:12]}.model"
+    if base.exists():
+        print(f"  reusing shared vref tokenizer base {base.name}")
+    else:
+        train_tokenizer(
+            corpus,
+            base.parent / base.stem,
+            tags=tags,
+            vocab_size=cfg.tokenizer.vocab_size,
+            model_type=cfg.tokenizer.type,
+        )
+
+    tok_dir = output / "tokenizer"
+    model_path = extend_tokenizer(
+        base, source_symbols(cfg.data.vref_encoding, all_vrefs), tok_dir / "spm.model"
+    )
+    return load_tokenizer(model_path)
+
+
 def build_training_args(cfg: ExperimentConfig, output: Path, args):
     from transformers import Seq2SeqTrainingArguments
 
     per_device = cfg.training.per_device_batch_size or 16
     max_steps = args.max_steps if args.max_steps else cfg.training.max_steps
     eval_steps = min(cfg.training.eval_every_steps, max_steps)
+    # When probe eval drives stopping and best-checkpoint selection, we handle
+    # "best" ourselves (probe.ProbeStopper), so HF must not also try to reload
+    # an eval_loss-best checkpoint at the end.
+    probe_driven = cfg.probe is not None and not args.overfit
     # Label smoothing floors the loss well above zero, which hides whether the
     # loop is actually memorising the overfit subset; turn it off there so the
     # near-zero-loss check (spec.md #4) is meaningful.
@@ -125,7 +188,7 @@ def build_training_args(cfg: ExperimentConfig, output: Path, args):
         save_strategy="steps",
         save_steps=eval_steps,
         save_total_limit=2,
-        load_best_model_at_end=True,
+        load_best_model_at_end=not probe_driven,
         metric_for_best_model="eval_loss",
         greater_is_better=False,
         logging_steps=max(1, min(50, max_steps // 10)),
@@ -148,6 +211,21 @@ def run(args) -> None:
     data = prepare(cfg)
     assert_no_leakage(data.splits, data.holdouts)
 
+    # The vref comparison claim depends on training on exactly ie_base's pair
+    # set; assert it here before any compute is spent (spec-vref.md, #2).
+    train_manifest = manifest_checksum(data.train_pairs)
+    if cfg.data.expected_train_manifest:
+        expected = repo_root().joinpath(
+            cfg.data.expected_train_manifest
+        ).read_text(encoding="utf-8").strip()
+        assert train_manifest == expected, (
+            f"train manifest {train_manifest} != expected {expected} "
+            f"({cfg.data.expected_train_manifest})"
+        )
+        print(f"  train manifest matches {cfg.data.expected_train_manifest}")
+    else:
+        print(f"  train manifest checksum: {train_manifest}")
+
     if cfg.data.pairing == "many-to-many":
         from .manytomany import build_m2m_pairs
 
@@ -164,7 +242,12 @@ def run(args) -> None:
         f"test={len(data.test_pairs)}"
     )
 
-    sp = train_tokenizer_for(cfg, train_source_pairs, output)
+    if cfg.data.source == "vref":
+        sp = vref_tokenizer_for(
+            cfg, train_source_pairs, data.verses.index.tolist(), output
+        )
+    else:
+        sp = train_tokenizer_for(cfg, train_source_pairs, output)
     print(f"  tokenizer: {sp.get_piece_size()} pieces "
           f"(unk={sp.unk_id()} bos={sp.bos_id()} eos={sp.eos_id()} pad={sp.pad_id()})")
 
@@ -195,8 +278,34 @@ def run(args) -> None:
     from transformers import EarlyStoppingCallback, Seq2SeqTrainer
 
     targs = build_training_args(cfg, output, args)
+    probe_driven = cfg.probe is not None and not args.overfit
     callbacks = []
-    if not args.overfit:
+    stopper = None
+    if probe_driven:
+        from .probe import ProbeStopper, build_probe_set
+
+        held_out = build_probe_set(
+            data.test_pairs, data.language_of,
+            cfg.probe.verses_per_language, cfg.probe.seed,
+        )
+        probe_sets = {"": held_out}
+        msg = (f"  probe: held-out {len(held_out)} verses / "
+               f"{held_out['language'].nunique()} langs")
+        if cfg.probe.seen_verses_per_language:
+            # SEEN probe: the holdout languages' *trained* verses (their NT),
+            # to watch memorisation apart from held-out transfer.
+            seen = build_probe_set(
+                train_pairs, data.language_of,
+                cfg.probe.seen_verses_per_language, cfg.probe.seed,
+                translations=list(data.holdouts.keys()),
+            )
+            probe_sets["seen_"] = seen
+            msg += f"; seen {len(seen)} verses / {seen['language'].nunique()} langs"
+        stop_mode = "early-stop ON" if cfg.probe.early_stop else "run-to-max_steps"
+        print(f"{msg}; every {cfg.probe.every_steps} steps; {stop_mode}")
+        stopper = ProbeStopper(probe_sets, sp, cfg.probe, output, cfg.inference.max_length)
+        callbacks.append(stopper)
+    elif not args.overfit:
         callbacks.append(EarlyStoppingCallback(cfg.training.early_stopping_patience))
 
     trainer = Seq2SeqTrainer(
@@ -212,6 +321,18 @@ def run(args) -> None:
     metrics = trainer.evaluate()
     print(f"  final eval: {metrics}")
 
+    # For probe-driven runs the checkpoint used downstream is the best-probe
+    # one saved by ProbeStopper, not the final-step weights; load it back so
+    # save_model writes it as the run's model (spec-vref.md, "Checkpointing").
+    if stopper is not None and stopper.best is not None:
+        from .probe import BEST_DIR, plot_curves
+
+        best_dir = output / BEST_DIR
+        trainer.model = type(model).from_pretrained(str(best_dir)).to(model.device)
+        print(f"  using best-probe checkpoint: chrF3_macro={stopper.best[1]} "
+              f"@ step {stopper.best[0]}")
+        plot_curves(stopper.csv_path, output / "probe.png")
+
     trainer.save_model(str(output))
     shutil.copy(cfg.path, output / "config.yaml")
     (output / "train_summary.json").write_text(
@@ -221,8 +342,11 @@ def run(args) -> None:
                 "eval_loss": metrics.get("eval_loss"),
                 "n_params": n_params,
                 "train_pairs": len(train_pairs),
+                "train_manifest": train_manifest,
                 "length_filter": train_stats,
                 "overfit": args.overfit,
+                "probe_best_step": stopper.best[0] if stopper and stopper.best else None,
+                "probe_best_chrF3_macro": stopper.best[1] if stopper and stopper.best else None,
             },
             indent=2,
         ),

@@ -76,13 +76,18 @@ def length_filter(
 
     Returns the kept pairs and counts of what was dropped, so pipelines can
     log truncation instead of silently shrinking the data (spec.md,
-    "no silent caps").
+    "no silent caps"). ``max_ratio`` 0 (or None) disables the ratio filter —
+    a vref source is always a few tokens, so every pair would fail it
+    (spec-vref.md, "Data").
     """
     src_len = pairs[SRC_COLUMN].map(lambda s: len(encode(s)))
     tgt_len = pairs[TGT_COLUMN].map(lambda s: len(encode(s)))
     too_long = (src_len > max_len) | (tgt_len > max_len)
-    ratio = pd.concat([src_len / tgt_len, tgt_len / src_len], axis=1).max(axis=1)
-    bad_ratio = ratio > max_ratio
+    if max_ratio:
+        ratio = pd.concat([src_len / tgt_len, tgt_len / src_len], axis=1).max(axis=1)
+        bad_ratio = ratio > max_ratio
+    else:
+        bad_ratio = pd.Series(False, index=pairs.index)
     kept = pairs[~too_long & ~bad_ratio].reset_index(drop=True)
     stats = {
         "input": len(pairs),

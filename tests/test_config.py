@@ -19,6 +19,27 @@ def test_load_pilot_config_is_transformer_big():
     assert cfg.tokenizer.vocab_size == 32000
 
 
+def test_load_vref_configs():
+    base = repo_root() / "configs" / "experiments" / "vref"
+    for encoding in ("struct", "vtok", "text"):
+        cfg = ExperimentConfig.load(base / f"vref_ie_{encoding}.yaml")
+        assert cfg.data.source == "vref"
+        assert cfg.data.vref_encoding == encoding
+        assert cfg.data.max_ratio == 0            # ratio filter disabled
+        assert cfg.model.d_model == 512           # transformer-base, like ie_base
+        assert cfg.training.max_steps == 180000
+        assert cfg.probe is not None
+        assert cfg.probe.every_steps == 1000
+        assert cfg.probe.patience_steps == 20000
+        assert cfg.probe.min_gain == 1.0
+        assert cfg.data.expected_train_manifest == "experiments/vref-train-manifest.txt"
+
+
+def test_config_without_probe_section_has_none():
+    cfg = ExperimentConfig.load(repo_root() / "configs" / "experiments" / "ie_base.yaml")
+    assert cfg.probe is None
+
+
 def test_unknown_yaml_keys_ignored(tmp_path):
     p = tmp_path / "c.yaml"
     p.write_text(

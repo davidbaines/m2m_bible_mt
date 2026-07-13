@@ -1,0 +1,62 @@
+# vref-source series (spec-vref.md), encoding 2 of 3: ONE TOKEN PER VERSE.
+# Source side is only the target-language tag + an encoded verse reference —
+# no source text. Identical to ie_base in every other respect (same 34 IE
+# languages, same whole-OT holdouts, transformer-base) so the comparison
+# isolates the sourcing change. Trains to convergence: probe eval every 1000
+# steps, early stop on macro chrF3, 180k-step ceiling.
+name: vref_ie_vtok
+phase: one-to-many
+
+data:
+  selection: experiments/selection-ie.csv
+  holdouts: configs/holdouts-ie.yaml
+  source: vref
+  vref_encoding: vtok          # <GEN_1:1> (one atomic symbol per verse; +~42k vocab)
+  expected_train_manifest: experiments/vref-train-manifest.txt
+  max_len: 192
+  max_ratio: 0                 # a vref source is ~3 tokens; ratio filter off
+
+tokenizer:
+  type: bpe
+  vocab_size: 32000
+
+model:                         # transformer-base (~65M), matches ie_base
+  arch: marian
+  encoder_layers: 6
+  decoder_layers: 6
+  d_model: 512
+  encoder_attention_heads: 8
+  decoder_attention_heads: 8
+  encoder_ffn_dim: 2048
+  decoder_ffn_dim: 2048
+  dropout: 0.1
+  label_smoothing: 0.1
+
+training:
+  optimizer: adamw
+  lr: 5.0e-4
+  warmup_steps: 4000
+  lr_scheduler: inverse_sqrt
+  max_tokens_per_batch: 16000
+  per_device_batch_size: 48
+  gradient_accumulation: 2
+  max_grad_norm: 1.0
+  bf16: true
+  max_steps: 180000            # ceiling; probe early-stopping usually ends sooner
+  eval_every_steps: 2000       # HF loss eval (valid set); probe is separate
+  seed: 13
+
+inference:
+  beam: 5
+  length_penalty: 1.0
+  max_length: 192
+
+probe:                         # held-out chrF3/BLEU curve + early stop
+  every_steps: 1000
+  verses_per_language: 250
+  min_gain: 1.0
+  patience_steps: 20000
+  batch_size: 64
+  seed: 13
+
+oversample_holdouts: 1
